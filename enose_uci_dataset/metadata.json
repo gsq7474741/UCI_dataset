@@ -1,0 +1,29 @@
+{
+    "dataset_name": "twin_gas_sensor_arrays",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "Reading time (ms)",
+            "column_description": "记录的时间步长，表示每次记录的时间点",
+            "column_data_type": "int32",
+            "column_unit": "ms"
+        }
+    ],
+    "label_columns": [],
+    "sensor_columns": [
+        {
+            "column_name": "board1_sensor0",
+            "column_description": "Board 1, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        }
+    ]
+}

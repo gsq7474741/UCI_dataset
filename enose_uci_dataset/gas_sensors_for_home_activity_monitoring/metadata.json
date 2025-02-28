@@ -1,0 +1,110 @@
+{
+    "dataset_name": "gas_sensors_for_home_activity_monitoring",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "time",
+            "column_description": "以小时为单位的时间，其中零是诱导的开始时间",
+            "column_data_type": "fp32",
+            "column_unit": "h"
+        },
+        {
+            "column_name": "Temp.",
+            "column_description": "环境温度",
+            "column_data_type": "fp32",
+            "column_unit": "°C"
+        },
+        {
+            "column_name": "Humidity",
+            "column_description": "相对湿度",
+            "column_data_type": "fp32",
+            "column_unit": "%"
+        }
+
+    ],
+    "label_columns": [],
+    "sensor_columns": [
+        {
+            "column_name": "sensor0",
+            "column_description": "TGS2611",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": ["Methane"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor1",
+            "column_description": "TGS2612",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": ["Methane", "Propane", "Butane"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor2",
+            "column_description": "TGS2610",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": ["Propane"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor3",
+            "column_description": "TGS2600",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": ["Hydrogen", "Carbon monoxide"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor4",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": ["Ammonia", "H2S", "VOC"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor5",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": ["Ammonia", "H2S", "VOC"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor6",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": ["Carbon monoxide", "Combustible gases", "VOC"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "sensor7",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": ["Carbon monoxide", "Combustible gases", "VOC"],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        }
+    ]
+}

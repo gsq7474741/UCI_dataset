@@ -1,0 +1,28 @@
+# Logs
+*.log
+
+# Compressed files
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Datasets
+*.csv
+*.dat
+*.h5
+*.npy
+*.parquet
+*.txt
+**/raw/
+**/ssl_csv_samples/
+
+# coner case
+**/Drift-in-MOX-Sensor-Dataset-Reveals-Limitations-for-Gas-Classification-Benchmarks-v1.0.2/
+
+# Miscellaneous
+.DS_Store
+__pycache__/
+*.pyc
+

@@ -1,0 +1,1046 @@
+{
+    "dataset_name": "gas_sensor_arrays_in_open_sampling_settings",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "Reading time (ms)",
+            "column_description": "记录的时间步长，表示每次记录的时间点",
+            "column_data_type": "numeric",
+            "column_unit": "milliseconds (ms)"
+        },
+        {
+            "column_name": "fan_set_point",
+            "column_description": "排气风扇的设定速度值",
+            "column_data_type": "numeric",
+            "column_unit": "无单位"
+        },
+        {
+            "column_name": "fan_reading",
+            "column_description": "排气风扇的实际测量速度值（文件中提到该值可能不准确，建议忽略）",
+            "column_data_type": "numeric",
+            "column_unit": "无单位"
+        },
+        {
+            "column_name": "mcf1_setpoint",
+            "column_description": "质量流量控制器1（MFC1）的设定开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "mcf2_setpoint",
+            "column_description": "质量流量控制器2（MFC2）的设定开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "mcf3_setpoint",
+            "column_description": "质量流量控制器3（MFC3）的设定开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "mcf1_read",
+            "column_description": "质量流量控制器1（MFC1）的实际测量开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "mcf2_read",
+            "column_description": "质量流量控制器2（MFC2）的实际测量开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "mcf3_read",
+            "column_description": "质量流量控制器3（MFC3）的实际测量开度值",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "T",
+            "column_description": "温度值，表示实验环境中的温度",
+            "column_data_type": "numeric",
+            "column_unit": "Celsius (°C)"
+        },
+        {
+            "column_name": "RH",
+            "column_description": "相对湿度值，表示实验环境中的相对湿度",
+            "column_data_type": "numeric",
+            "column_unit": "百分比 (%)"
+        },
+        {
+            "column_name": "1",
+            "column_description": "分隔符，表示传感器模块板的边界",
+            "column_data_type": "numeric",
+            "column_unit": "无单位"
+        }
+    ],
+    "label_columns": [],
+    "sensor_columns": [
+        {
+            "column_name": "board1_sensor0",
+            "column_description": "Board 1, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor1",
+            "column_description": "Board 1, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor2",
+            "column_description": "Board 1, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor3",
+            "column_description": "Board 1, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor4",
+            "column_description": "Board 1, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor5",
+            "column_description": "Board 1, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor6",
+            "column_description": "Board 1, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board1_sensor7",
+            "column_description": "Board 1, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor0",
+            "column_description": "Board 2, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor1",
+            "column_description": "Board 2, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor2",
+            "column_description": "Board 2, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor3",
+            "column_description": "Board 2, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor4",
+            "column_description": "Board 2, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor5",
+            "column_description": "Board 2, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor6",
+            "column_description": "Board 2, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board2_sensor7",
+            "column_description": "Board 2, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor0",
+            "column_description": "Board 3, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor1",
+            "column_description": "Board 3, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor2",
+            "column_description": "Board 3, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor3",
+            "column_description": "Board 3, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor4",
+            "column_description": "Board 3, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor5",
+            "column_description": "Board 3, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor6",
+            "column_description": "Board 3, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board3_sensor7",
+            "column_description": "Board 3, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor0",
+            "column_description": "Board 4, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor1",
+            "column_description": "Board 4, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor2",
+            "column_description": "Board 4, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor3",
+            "column_description": "Board 4, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor4",
+            "column_description": "Board 4, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor5",
+            "column_description": "Board 4, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor6",
+            "column_description": "Board 4, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board4_sensor7",
+            "column_description": "Board 4, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor0",
+            "column_description": "Board 5, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor1",
+            "column_description": "Board 5, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor2",
+            "column_description": "Board 5, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor3",
+            "column_description": "Board 5, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor4",
+            "column_description": "Board 5, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor5",
+            "column_description": "Board 5, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor6",
+            "column_description": "Board 5, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board5_sensor7",
+            "column_description": "Board 5, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor0",
+            "column_description": "Board 6, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor1",
+            "column_description": "Board 6, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor2",
+            "column_description": "Board 6, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor3",
+            "column_description": "Board 6, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor4",
+            "column_description": "Board 6, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor5",
+            "column_description": "Board 6, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor6",
+            "column_description": "Board 6, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board6_sensor7",
+            "column_description": "Board 6, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor0",
+            "column_description": "Board 7, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor1",
+            "column_description": "Board 7, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor2",
+            "column_description": "Board 7, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor3",
+            "column_description": "Board 7, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor4",
+            "column_description": "Board 7, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor5",
+            "column_description": "Board 7, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor6",
+            "column_description": "Board 7, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board7_sensor7",
+            "column_description": "Board 7, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor0",
+            "column_description": "Board 8, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor1",
+            "column_description": "Board 8, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor2",
+            "column_description": "Board 8, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor3",
+            "column_description": "Board 8, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor4",
+            "column_description": "Board 8, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor5",
+            "column_description": "Board 8, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor6",
+            "column_description": "Board 8, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board8_sensor7",
+            "column_description": "Board 8, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor0",
+            "column_description": "Board 9, Sensor 0",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2611",
+            "column_sensor_target_gas": [
+                "Methane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor1",
+            "column_description": "Board 9, Sensor 1",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2612",
+            "column_sensor_target_gas": [
+                "Methane",
+                "Propane",
+                "Butane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor2",
+            "column_description": "Board 9, Sensor 2",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor3",
+            "column_description": "Board 9, Sensor 3",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor4",
+            "column_description": "Board 9, Sensor 4",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor5",
+            "column_description": "Board 9, Sensor 5",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor6",
+            "column_description": "Board 9, Sensor 6",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        },
+        {
+            "column_name": "board9_sensor7",
+            "column_description": "Board 9, Sensor 7",
+            "column_data_type": "int32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "KOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000"
+        }
+    ]
+}
