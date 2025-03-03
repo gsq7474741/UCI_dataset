@@ -88,6 +88,38 @@ Time (seconds), Methane conc (ppm), Ethylene conc (ppm), sensor readings (16 cha
 
 ## 数据处理
 
+### 提取metadata
+
+prompt:
+
+```prompt
+修改当前文件，增加以下16列
+name：sensor0-15，共16列
+description：sensor名字,
+data_type：fp32
+sensor：
+- TGS2602
+- TGS2602
+- TGS2600
+- TGS2600
+- TGS2610
+- TGS2610
+- TGS2620
+- TGS2620
+- TGS2602
+- TGS2602
+- TGS2600
+- TGS2600
+- TGS2610
+- TGS2610
+- TGS2620
+- TGS2620
+unit：S_i
+trans_to_ohm_functor：lambda x: 40.000/x*1000
+column_sample_rate:100
+```
+
+
 ### 时间序列SSL预训练任务
 
 元数据：气体、浓度、采样率、电阻单位、每个样本时长

@@ -5,4 +5,6 @@ echo "Extracting $FILE_NAME to raw/..."
 unzip -n "$FILE_NAME" -d raw/
 
 # 每个数据集不同的处理方式
-gunzip raw/rawdata.csv.gz
+unzip -n raw/gas-sensor-array-temperature-modulation.zip -d raw/ 
+rm raw/gas-sensor-array-temperature-modulation.zip
+rm raw/README.txt

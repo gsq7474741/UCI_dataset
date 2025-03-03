@@ -102,10 +102,10 @@ output_dir = './ssl_csv_samples'
 os.makedirs(output_dir, exist_ok=True)
 
 # 处理两个输入文件
-convert_to_csv('.raw/ethylene_CO.txt', )
-process_file('.raw/ethylene_CO.txt.csv', output_dir, type='co')
+convert_to_csv('raw/ethylene_CO.txt', )
+process_file('raw/ethylene_CO.txt.csv', output_dir, type='co')
 
-convert_to_csv('.raw/ethylene_methane.txt',)
-process_file('.raw/ethylene_methane.txt.csv', output_dir, type='methane')
+convert_to_csv('raw/ethylene_methane.txt',)
+process_file('raw/ethylene_methane.txt.csv', output_dir, type='methane')
 
 print("数据处理完成，CSV文件已生成在 ./ssl_csv_samples 目录下。")

@@ -1,0 +1,190 @@
+{
+    "dataset_name": "gas_sensor_array_temperature_modulation",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "Time (s)",
+            "column_description": "记录的时间步长，表示每次记录的时间点",
+            "column_data_type": "fp32",
+            "column_unit": "s"
+        },
+
+        {
+            "column_name": "Humidity (%r.h.)",
+            "column_description": "相对湿度",
+            "column_data_type": "fp32",
+            "column_unit": "%r.h."
+        },
+        {
+            "column_name": "Temperature (C)",
+            "column_description": "环境温度",
+            "column_data_type": "fp32",
+            "column_unit": "°C"
+        },
+        {
+            "column_name": "Flow rate (mL/min)",
+            "column_description": "气体流量",
+            "column_data_type": "fp32",
+            "column_unit": "mL/min"
+        },
+        {
+            "column_name": "Heater voltage (V)",
+            "column_description": "传感器加热器电压",
+            "column_data_type": "fp32",
+            "column_unit": "V"
+        }
+    ],
+    "label_columns": [
+        {
+            "column_name": "CO (ppm)",
+            "column_description": "一氧化碳浓度",
+            "column_data_type": "fp32",
+            "column_unit": "ppm"
+        }
+    ],
+    "sensor_columns": [
+        {
+            "column_name": "sensor0",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor1",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor2",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor3",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor4",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor5",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor6",
+            "column_description": "TGS3870",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS3870",
+            "column_sensor_target_gas": ["Methane", "CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor7",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor8",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor9",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor10",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor11",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor12",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor13",
+            "column_description": "SB-500-12",
+            "column_data_type": "fp32",
+            "column_sensor": "SB-500-12",
+            "column_sensor_target_gas": ["CO"],
+            "column_sample_rate": 3.5,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        }
+
+    ]
+}
