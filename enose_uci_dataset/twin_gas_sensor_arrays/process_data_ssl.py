@@ -4,7 +4,7 @@ import re
 from tqdm import tqdm
 
 # 定义输入和输出目录
-input_dir = './.raw/data1'
+input_dir = './raw/'
 output_dir = './ssl_csv_samples'
 
 # 确保输出目录存在
