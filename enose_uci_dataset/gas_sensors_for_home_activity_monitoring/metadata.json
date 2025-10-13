@@ -32,7 +32,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2611",
             "column_sensor_target_gas": ["Methane"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -42,7 +42,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2612",
             "column_sensor_target_gas": ["Methane", "Propane", "Butane"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -52,7 +52,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2610",
             "column_sensor_target_gas": ["Propane"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -62,7 +62,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2600",
             "column_sensor_target_gas": ["Hydrogen", "Carbon monoxide"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -72,7 +72,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2602",
             "column_sensor_target_gas": ["Ammonia", "H2S", "VOC"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -82,7 +82,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2602",
             "column_sensor_target_gas": ["Ammonia", "H2S", "VOC"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -92,7 +92,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2620",
             "column_sensor_target_gas": ["Carbon monoxide", "Combustible gases", "VOC"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         },
@@ -102,7 +102,7 @@
             "column_data_type": "fp32",
             "column_sensor": "TGS2620",
             "column_sensor_target_gas": ["Carbon monoxide", "Combustible gases", "VOC"],
-            "column_sample_rate": 100,
+            "column_sample_rate": 1,
             "column_unit": "KOhm",
             "column_trans_to_ohm_functor": "lambda x: x*1000"
         }

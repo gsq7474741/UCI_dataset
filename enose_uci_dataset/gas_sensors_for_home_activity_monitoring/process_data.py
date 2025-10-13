@@ -2,15 +2,15 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 
-# 创建输出目录
-output_dir = './ssl_csv_samples'
+# 创建输出目录（统一到 processed/v1/ssl_samples 下，便于下游加载）
+output_dir = 'processed/v1/ssl_samples'
 os.makedirs(output_dir, exist_ok=True)
 
 # 读取元数据
-metadata = pd.read_csv('raw/HT_Sensor_metadata.dat', sep='\t+')
+metadata = pd.read_csv('raw/HT_Sensor_metadata.dat', sep='\t+', engine='python')
 
 # 读取传感器数据
-sensor_data = pd.read_csv('raw/HT_Sensor_dataset.dat', sep='\s+')
+sensor_data = pd.read_csv('raw/HT_Sensor_dataset.dat', sep='\s+', engine='python')
 
 
 # 定义气体映射字典
@@ -32,6 +32,8 @@ for _, meta_row in metadata.iterrows():
     # 添加日期列
     sample_data['date'] = date + pd.to_timedelta(sample_data['time'], unit='h')
     sample_data['date'] = sample_data['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    # 添加以秒为单位的相对时间 t_s（t=0 为诱导开始）
+    sample_data['t_s'] = sample_data['time'] * 3600.0
 
     # 重命名列
     sample_data = sample_data.rename(columns={
@@ -52,7 +54,7 @@ for _, meta_row in metadata.iterrows():
 
     # 选择并排序所需的列
     columns = ['sensor_0', 'sensor_1', 'sensor_2', 'sensor_3', 'sensor_4', 'sensor_5', 'sensor_6', 'sensor_7',
-               'temp', 'humidity', 'date', 'label_gas']
+               'temp', 'humidity', 't_s', 'date', 'label_gas']
     sample_data = sample_data[columns]
 
     # 保存为CSV文件

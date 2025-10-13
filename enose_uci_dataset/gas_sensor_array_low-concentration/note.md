@@ -50,32 +50,3 @@ trans_to_ohm_functor：lambda x: x*1000000
 column_sample_rate:1
 ```
 
-
-### 时间序列SSL预训练任务
-
-元数据：气体、浓度、采样率、电阻单位、每个样本时长
-
-对于每个样本，处理为单个csv文件：
-
-每列为一个传感器的电阻值（单位：千欧姆）,注意此处需要将原始的传感器相应换算为阻值（i.e. 40.0/S_i），最后几列为标签（气体种类浓度）。
-例如：sensor_0,sensor_1,...,sensor_n,label_co_ppm,label_ethylene_ppm,label_methane_ppm
-这两个文件加一起1.2GB，很大，处理的时候要根据数据的含义进行切分，
-具体来说，当原数据中CO conc (ppm)/Methane conc (ppm) 和 Ethylene conc (ppm)任一值发生变化时，认为是一个新的样本。
-
-prompt:
-
-```text
-请帮我根据以上信息处理数据集，生成csv文件。
-当前目录结构如下：
-.
-├── note.md
-└── .raw
-    ├── ethylene_CO.txt
-    └── ethylene_methane.txt
-
-请帮我在./ssl_csv_samples下生成要求的文件，使用python
-```
-
-模型输出：
-
-见 `process_data.py`
