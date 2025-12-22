@@ -1,0 +1,152 @@
+# UCI电子鼻数据集配置文件
+# 所有数据集的元信息定义
+
+datasets:
+  alcohol_qcm_sensor_dataset:
+    uci_id: 496
+    file_name: "alcohol+qcm+sensor+dataset.zip"
+    sha1_hash: "c8896d2cfe94208843d5ce1fd4c86ec2b97376a3"
+    url: "https://archive.ics.uci.edu/static/public/496/alcohol+qcm+sensor+dataset.zip"
+    description: "Alcohol QCM Sensor Dataset"
+    extract:
+      type: standard  # standard | turbo | nested
+      subdir: "QCM Sensor Alcohol Dataset"  # 解压后需要移动的子目录
+    tasks:
+      - classification
+    sensors:
+      type: QCM
+      count: 5
+
+  gas_sensor_array_drift_dataset_at_different_concentrations:
+    uci_id: 270
+    file_name: "gas+sensor+array+drift+dataset+at+different+concentrations.zip"
+    sha1_hash: "385190f8143902b279d8592fa60d50126ccf9d7c"
+    url: "https://archive.ics.uci.edu/static/public/270/gas+sensor+array+drift+dataset+at+different+concentrations.zip"
+    description: "Gas Sensor Array Drift Dataset at Different Concentrations"
+    extract:
+      type: standard
+    tasks:
+      - classification
+      - drift_compensation
+    sensors:
+      type: MOX
+      count: 16
+
+  gas_sensor_array_exposed_to_turbulent_gas_mixtures:
+    uci_id: 309
+    file_name: "gas+sensor+array+exposed+to+turbulent+gas+mixtures.zip"
+    sha1_hash: "c812370aa04a1491781767b3cf606ce6fa0d221e"
+    url: "https://archive.ics.uci.edu/static/public/309/gas+sensor+array+exposed+to+turbulent+gas+mixtures.zip"
+    description: "Gas Sensor Array Exposed to Turbulent Gas Mixtures"
+    extract:
+      type: turbo  # 文件数量多，使用并行解压
+    tasks:
+      - classification
+      - concentration_prediction
+    sensors:
+      type: MOX
+      count: 8
+
+  gas_sensor_array_low_concentration:
+    uci_id: 1081
+    file_name: "gas+sensor+array+low-concentration.zip"
+    sha1_hash: "41818a074550dd23a222856afdc19c7fbf32903e"
+    url: "https://archive.ics.uci.edu/static/public/1081/gas+sensor+array+low-concentration.zip"
+    description: "Gas Sensor Array Low-Concentration Dataset"
+    dir_name: "gas_sensor_array_low-concentration"  # 目录名与key不同时指定
+    extract:
+      type: standard
+    tasks:
+      - classification
+      - concentration_prediction
+    sensors:
+      type: MOX
+      count: 8
+    time_series:
+      continuous: true
+      sample_rate_hz: 100
+
+  gas_sensor_array_temperature_modulation:
+    uci_id: 487
+    file_name: "gas+sensor+array+temperature+modulation.zip"
+    sha1_hash: "e9caaded42fa57086da2a56f5a3dfb2f7a7708d8"
+    url: "https://archive.ics.uci.edu/static/public/487/gas+sensor+array+temperature+modulation.zip"
+    description: "Gas Sensor Array Temperature Modulation"
+    extract:
+      type: turbo
+    tasks:
+      - classification
+    sensors:
+      type: MOX
+      count: 14
+
+  gas_sensor_array_under_dynamic_gas_mixtures:
+    uci_id: 322
+    file_name: "gas+sensor+array+under+dynamic+gas+mixtures.zip"
+    sha1_hash: "12dd9c43e621d56b53f2f8894dddd6e410283d47"
+    url: "https://archive.ics.uci.edu/static/public/322/gas+sensor+array+under+dynamic+gas+mixtures.zip"
+    description: "Gas Sensor Array under Dynamic Gas Mixtures"
+    extract:
+      type: standard
+    tasks:
+      - classification
+      - concentration_prediction
+    sensors:
+      type: MOX
+      count: 16
+    time_series:
+      continuous: true
+      sample_rate_hz: 100
+
+  gas_sensor_array_under_flow_modulation:
+    uci_id: 308
+    file_name: "gas+sensor+array+under+flow+modulation.zip"
+    sha1_hash: "d8c3de28ece518cf57ed842c1d5b8a23ee03398b"
+    url: "https://archive.ics.uci.edu/static/public/308/gas+sensor+array+under+flow+modulation.zip"
+    description: "Gas Sensor Array under Flow Modulation"
+    extract:
+      type: turbo  # 文件多
+    tasks:
+      - classification
+    sensors:
+      type: MOX
+      count: 16
+
+  gas_sensors_for_home_activity_monitoring:
+    uci_id: 362
+    file_name: "gas+sensors+for+home+activity+monitoring.zip"
+    sha1_hash: "34101ca24e556dc14a6ee1e2910111ed49c0e6ce"
+    url: "https://archive.ics.uci.edu/static/public/362/gas+sensors+for+home+activity+monitoring.zip"
+    description: "Gas Sensors for Home Activity Monitoring"
+    extract:
+      type: nested  # 嵌套zip
+      nested_zip: "HT_Sensor_dataset.zip"
+    tasks:
+      - classification
+      - activity_recognition
+    sensors:
+      type: MOX
+      count: 8
+    time_series:
+      continuous: true
+      sample_rate_hz: 1
+
+  twin_gas_sensor_arrays:
+    uci_id: 361
+    file_name: "twin+gas+sensor+arrays.zip"
+    sha1_hash: "a235ab3cf55685fc8346eafea3f18e080adb77a3"
+    url: "https://archive.ics.uci.edu/static/public/361/twin+gas+sensor+arrays.zip"
+    description: "Twin Gas Sensor Arrays"
+    extract:
+      type: standard
+      subdir: "data1"
+    tasks:
+      - classification
+      - drift_compensation
+      - transfer_learning
+    sensors:
+      type: MOX
+      count: 8
+    time_series:
+      continuous: true
+      sample_rate_hz: 100

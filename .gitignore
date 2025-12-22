@@ -15,6 +15,8 @@
 *.npy
 *.parquet
 *.txt
+!requirements.txt
+!requirements-*.txt
 **/raw/
 **/ssl_csv_samples/
 
@@ -26,3 +28,5 @@
 __pycache__/
 *.pyc
 
+runs
+.cache

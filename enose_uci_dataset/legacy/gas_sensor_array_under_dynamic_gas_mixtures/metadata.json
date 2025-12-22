@@ -1,0 +1,242 @@
+{
+    "dataset_name": "gas_sensor_array_under_dynamic_gas_mixtures",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "Time (seconds)",
+            "column_description": "记录的时间步长，表示每次记录的时间点",
+            "column_data_type": "fp32",
+            "column_unit": "s"
+        }
+    ],
+    "label_columns": [
+        {
+            "column_name": "Methane conc (ppm)",
+            "column_description": "甲烷（或 CO）浓度设定点",
+            "column_data_type": "fp32",
+            "column_unit": "ppm"
+        },
+        {
+            "column_name": "Ethylene conc (ppm)",
+            "column_description": "乙烯浓度设定点",
+            "column_data_type": "fp32",
+            "column_unit": "ppm"
+        }
+    ],
+    "sensor_columns": [
+        {
+            "column_name": "sensor0",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor1",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor2",
+            "column_description": "TGS2600",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor3",
+            "column_description": "TGS2600",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor4",
+            "column_description": "TGS2610",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor5",
+            "column_description": "TGS2610",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor6",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor7",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor8",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor9",
+            "column_description": "TGS2602",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2602",
+            "column_sensor_target_gas": [
+                "Ammonia",
+                "H2S",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor10",
+            "column_description": "TGS2600",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor11",
+            "column_description": "TGS2600",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2600",
+            "column_sensor_target_gas": [
+                "Hydrogen",
+                "Carbon monoxide"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor12",
+            "column_description": "TGS2610",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor13",
+            "column_description": "TGS2610",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2610",
+            "column_sensor_target_gas": [
+                "Propane"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor14",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        },
+        {
+            "column_name": "sensor15",
+            "column_description": "TGS2620",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2620",
+            "column_sensor_target_gas": [
+                "Carbon monoxide",
+                "Combustible gases",
+                "VOC"
+            ],
+            "column_sample_rate": 100,
+            "column_unit": "S_i",
+            "column_trans_to_ohm_functor": "lambda x: 40.000/x*1000"
+        }
+    ]
+}

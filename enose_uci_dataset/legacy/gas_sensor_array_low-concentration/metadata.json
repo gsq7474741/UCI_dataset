@@ -1,0 +1,131 @@
+{
+    "dataset_name": "gas_sensor_array_temperature_modulation",
+    "dataset_description": "",
+    "dataset_url": "",
+    "dataset_license": "",
+    "meta_columns": [
+        {
+            "column_name": "Time (s)",
+            "column_description": "记录的时间步长，表示每次记录的时间点",
+            "column_data_type": "fp32",
+            "column_unit": "s"
+        }
+    ],
+    "label_columns": [
+        {
+            "column_name": "label",
+            "column_description": "气体种类",
+            "column_data_type": "str",
+            "column_unit": ""
+        },
+        {
+            "column_name": "conc",
+            "column_description": "浓度",
+            "column_data_type": "fp32",
+            "column_unit": "ppb"
+        }
+    ],
+    "sensor_columns": [
+        {
+            "column_name": "sensor0",
+            "column_description": "TGS2603",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2603",
+            "column_sensor_target_gas": ["Odor"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor1",
+            "column_description": "TGS2630",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS2630",
+            "column_sensor_target_gas": ["Methane", "Ethanol"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor2",
+            "column_description": "TGS813",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS813",
+            "column_sensor_target_gas": ["Combustible gases"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor3",
+            "column_description": "TGS822",
+            "column_data_type": "fp32",
+            "column_sensor": "TGS822",
+            "column_sensor_target_gas": ["Organic solvent vapors"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor4",
+            "column_description": "MQ-135",
+            "column_data_type": "fp32",
+            "column_sensor": "MQ-135",
+            "column_sensor_target_gas": ["NH3", "NOx", "Alcohol", "Benzene", "Smoke", "CO2"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor5",
+            "column_description": "MQ-137",
+            "column_data_type": "fp32",
+            "column_sensor": "MQ-137",
+            "column_sensor_target_gas": ["Ammonia"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor6",
+            "column_description": "MQ-138",
+            "column_data_type": "fp32",
+            "column_sensor": "MQ-138",
+            "column_sensor_target_gas": ["Benzene", "Toluene", "Alcohol"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor7",
+            "column_description": "2M012",
+            "column_data_type": "fp32",
+            "column_sensor": "2M012",
+            "column_sensor_target_gas": ["Carbon monoxide"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor8",
+            "column_description": "VOCS-P",
+            "column_data_type": "fp32",
+            "column_sensor": "VOCS-P",
+            "column_sensor_target_gas": ["Volatile organic compounds"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        {
+            "column_name": "sensor9",
+            "column_description": "2SH12",
+            "column_data_type": "fp32",
+            "column_sensor": "2SH12",
+            "column_sensor_target_gas": ["Hydrogen sulfide"],
+            "column_sample_rate": 1,
+            "column_unit": "MOhm",
+            "column_trans_to_ohm_functor": "lambda x: x*1000000"
+        },
+        
+    ]
+}
