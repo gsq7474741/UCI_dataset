@@ -28,5 +28,6 @@
 __pycache__/
 *.pyc
 
+logs
 runs
 .cache

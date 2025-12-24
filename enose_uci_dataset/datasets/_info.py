@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -12,9 +12,39 @@ class ExtractConfig:
 
 
 @dataclass(frozen=True)
+class ChannelConfig:
+    """Configuration for a single sensor channel.
+    
+    Attributes:
+        index: Channel index (0-based)
+        sensor_model: Sensor model name (e.g., 'TGS2602', 'TGS2611')
+        target_gases: Tuple of target gas names this sensor responds to
+        unit: Output unit (e.g., 'KOhm', 'mV', 'S_i')
+        heater_voltage: Heater voltage in volts (if applicable)
+        description: Optional description of the channel
+    """
+    index: int
+    sensor_model: str
+    target_gases: Tuple[str, ...] = ()
+    unit: str = "raw"
+    heater_voltage: Optional[float] = None
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class SensorConfig:
+    """Configuration for the sensor array.
+    
+    Attributes:
+        type: General sensor type (e.g., 'MOX', 'QCM')
+        count: Number of sensor channels
+        channels: Tuple of per-channel configurations
+        manufacturer: Sensor manufacturer (e.g., 'Figaro')
+    """
     type: str = "MOX"
     count: int = 0
+    channels: Tuple[ChannelConfig, ...] = ()
+    manufacturer: str = ""
 
 
 @dataclass(frozen=True)
@@ -37,6 +67,124 @@ class DatasetInfo:
     extract: ExtractConfig = ExtractConfig()
 
 
+# =============================================================================
+# Channel configurations for each dataset (gathered from UCI pages)
+# =============================================================================
+
+# Twin Gas Sensor Arrays: 8 Figaro MOX sensors at two voltage levels
+_TWIN_GAS_CHANNELS = (
+    ChannelConfig(0, "TGS2611", ("Methane",), "KOhm", 5.65, "Methane sensor"),
+    ChannelConfig(1, "TGS2612", ("Methane", "Propane", "Butane"), "KOhm", 5.65, "Combustible gas"),
+    ChannelConfig(2, "TGS2610", ("Propane",), "KOhm", 5.65, "LP gas sensor"),
+    ChannelConfig(3, "TGS2602", ("Ammonia", "H2S", "VOC"), "KOhm", 5.65, "Air quality"),
+    ChannelConfig(4, "TGS2611", ("Methane",), "KOhm", 5.00, "Methane sensor"),
+    ChannelConfig(5, "TGS2612", ("Methane", "Propane", "Butane"), "KOhm", 5.00, "Combustible gas"),
+    ChannelConfig(6, "TGS2610", ("Propane",), "KOhm", 5.00, "LP gas sensor"),
+    ChannelConfig(7, "TGS2602", ("Ammonia", "H2S", "VOC"), "KOhm", 5.00, "Air quality"),
+)
+
+# Gas Sensors for Home Activity Monitoring: 8 Figaro MOX sensors
+_HOME_ACTIVITY_CHANNELS = (
+    ChannelConfig(0, "TGS2611", ("Methane",), "resistance", None, "R1"),
+    ChannelConfig(1, "TGS2612", ("Methane", "Propane", "Butane"), "resistance", None, "R2"),
+    ChannelConfig(2, "TGS2610", ("Propane",), "resistance", None, "R3"),
+    ChannelConfig(3, "TGS2600", ("Hydrogen", "CO"), "resistance", None, "R4"),
+    ChannelConfig(4, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", None, "R5"),
+    ChannelConfig(5, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", None, "R6"),
+    ChannelConfig(6, "TGS2620", ("Alcohol", "VOC"), "resistance", None, "R7"),
+    ChannelConfig(7, "TGS2620", ("Alcohol", "VOC"), "resistance", None, "R8"),
+)
+
+# Gas Sensor Array under Dynamic Gas Mixtures: 16 Figaro MOX sensors (4 types x 4 units)
+_DYNAMIC_MIXTURE_CHANNELS = (
+    ChannelConfig(0, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", 5.0),
+    ChannelConfig(1, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", 5.0),
+    ChannelConfig(2, "TGS2600", ("Hydrogen", "CO"), "resistance", 5.0),
+    ChannelConfig(3, "TGS2600", ("Hydrogen", "CO"), "resistance", 5.0),
+    ChannelConfig(4, "TGS2610", ("Propane",), "resistance", 5.0),
+    ChannelConfig(5, "TGS2610", ("Propane",), "resistance", 5.0),
+    ChannelConfig(6, "TGS2620", ("Alcohol", "VOC"), "resistance", 5.0),
+    ChannelConfig(7, "TGS2620", ("Alcohol", "VOC"), "resistance", 5.0),
+    ChannelConfig(8, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", 5.0),
+    ChannelConfig(9, "TGS2602", ("Ammonia", "H2S", "VOC"), "resistance", 5.0),
+    ChannelConfig(10, "TGS2600", ("Hydrogen", "CO"), "resistance", 5.0),
+    ChannelConfig(11, "TGS2600", ("Hydrogen", "CO"), "resistance", 5.0),
+    ChannelConfig(12, "TGS2610", ("Propane",), "resistance", 5.0),
+    ChannelConfig(13, "TGS2610", ("Propane",), "resistance", 5.0),
+    ChannelConfig(14, "TGS2620", ("Alcohol", "VOC"), "resistance", 5.0),
+    ChannelConfig(15, "TGS2620", ("Alcohol", "VOC"), "resistance", 5.0),
+)
+
+# Gas Sensor Array Exposed to Turbulent Gas Mixtures: 8 Figaro MOX sensors
+_TURBULENT_CHANNELS = (
+    ChannelConfig(0, "TGS2600", ("Hydrogen", "CO"), "raw", 5.0),
+    ChannelConfig(1, "TGS2602", ("Ammonia", "H2S", "VOC"), "raw", 5.0),
+    ChannelConfig(2, "TGS2602", ("Ammonia", "H2S", "VOC"), "raw", 5.0),
+    ChannelConfig(3, "TGS2620", ("Alcohol", "VOC"), "raw", 5.0),
+    ChannelConfig(4, "TGS2612", ("Methane", "Propane", "Butane"), "raw", 5.0),
+    ChannelConfig(5, "TGS2620", ("Alcohol", "VOC"), "raw", 5.0),
+    ChannelConfig(6, "TGS2611", ("Methane",), "raw", 5.0),
+    ChannelConfig(7, "TGS2610", ("Propane",), "raw", 5.0),
+)
+
+# Gas Sensor Array Temperature Modulation: 14 sensors (7 Figaro + 7 FIS)
+_TEMP_MODULATION_CHANNELS = (
+    ChannelConfig(0, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R1"),
+    ChannelConfig(1, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R2"),
+    ChannelConfig(2, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R3"),
+    ChannelConfig(3, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R4"),
+    ChannelConfig(4, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R5"),
+    ChannelConfig(5, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R6"),
+    ChannelConfig(6, "TGS3870-A04", ("CO", "Methane"), "MOhm", None, "Figaro R7"),
+    ChannelConfig(7, "SB-500-12", ("CO",), "MOhm", None, "FIS R8"),
+    ChannelConfig(8, "SB-500-12", ("CO",), "MOhm", None, "FIS R9"),
+    ChannelConfig(9, "SB-500-12", ("CO",), "MOhm", None, "FIS R10"),
+    ChannelConfig(10, "SB-500-12", ("CO",), "MOhm", None, "FIS R11"),
+    ChannelConfig(11, "SB-500-12", ("CO",), "MOhm", None, "FIS R12"),
+    ChannelConfig(12, "SB-500-12", ("CO",), "MOhm", None, "FIS R13"),
+    ChannelConfig(13, "SB-500-12", ("CO",), "MOhm", None, "FIS R14"),
+)
+
+# Gas Sensor Array Low Concentration: 10 sensors (various manufacturers)
+_LOW_CONC_CHANNELS = (
+    ChannelConfig(0, "TGS2603", ("Ammonia", "H2S"), "resistance", None, "Figaro"),
+    ChannelConfig(1, "TGS2630", ("Freon",), "resistance", None, "Figaro"),
+    ChannelConfig(2, "TGS813", ("Combustible",), "resistance", None, "Figaro"),
+    ChannelConfig(3, "TGS822", ("Alcohol", "VOC"), "resistance", None, "Figaro"),
+    ChannelConfig(4, "MQ-135", ("NH3", "NOx", "Benzene"), "resistance", None, "Winsen"),
+    ChannelConfig(5, "MQ-137", ("Ammonia",), "resistance", None, "Winsen"),
+    ChannelConfig(6, "MQ-138", ("Benzene", "Alcohol"), "resistance", None, "Winsen"),
+    ChannelConfig(7, "2M012", ("Formaldehyde",), "resistance", None),
+    ChannelConfig(8, "VOCS-P", ("VOC",), "resistance", None),
+    ChannelConfig(9, "2SH12", ("H2S",), "resistance", None),
+)
+
+# Gas Sensor Array Drift Dataset: 16 MOX sensors (specific models not documented)
+_DRIFT_CHANNELS = tuple(
+    ChannelConfig(i, "MOX", (), "features", None, f"Sensor {i+1}")
+    for i in range(16)
+)
+
+# Gas Sensor Array under Flow Modulation: 16 sensors (specific models not documented)
+_FLOW_MODULATION_CHANNELS = tuple(
+    ChannelConfig(i, "MOX", (), "dR", None, f"Sensor {i+1}")
+    for i in range(16)
+)
+
+# Alcohol QCM Sensor: 5 QCM sensors with 2 channels each
+_ALCOHOL_QCM_CHANNELS = (
+    ChannelConfig(0, "QCM3", ("Alcohol",), "frequency", None, "MIP:NP=1:1"),
+    ChannelConfig(1, "QCM6", ("Alcohol",), "frequency", None, "MIP:NP=1:0"),
+    ChannelConfig(2, "QCM7", ("Alcohol",), "frequency", None, "MIP:NP=1:0.5"),
+    ChannelConfig(3, "QCM10", ("Alcohol",), "frequency", None, "MIP:NP=1:2"),
+    ChannelConfig(4, "QCM12", ("Alcohol",), "frequency", None, "MIP:NP=0:1"),
+)
+
+
+# =============================================================================
+# Dataset registry
+# =============================================================================
+
 _DATASETS: Dict[str, DatasetInfo] = {
     "alcohol_qcm_sensor_dataset": DatasetInfo(
         name="alcohol_qcm_sensor_dataset",
@@ -46,7 +194,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/496/alcohol+qcm+sensor+dataset.zip",
         description="Alcohol QCM Sensor Dataset",
         tasks=["classification"],
-        sensors=SensorConfig(type="QCM", count=5),
+        sensors=SensorConfig(type="QCM", count=5, channels=_ALCOHOL_QCM_CHANNELS),
         extract=ExtractConfig(type="standard", subdir="QCM Sensor Alcohol Dataset"),
     ),
     "gas_sensor_array_drift_dataset_at_different_concentrations": DatasetInfo(
@@ -57,7 +205,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/270/gas+sensor+array+drift+dataset+at+different+concentrations.zip",
         description="Gas Sensor Array Drift Dataset at Different Concentrations",
         tasks=["classification", "drift_compensation"],
-        sensors=SensorConfig(type="MOX", count=16),
+        sensors=SensorConfig(type="MOX", count=16, channels=_DRIFT_CHANNELS),
         extract=ExtractConfig(type="standard"),
     ),
     "gas_sensor_array_exposed_to_turbulent_gas_mixtures": DatasetInfo(
@@ -68,7 +216,8 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/309/gas+sensor+array+exposed+to+turbulent+gas+mixtures.zip",
         description="Gas Sensor Array Exposed to Turbulent Gas Mixtures",
         tasks=["classification", "concentration_prediction"],
-        sensors=SensorConfig(type="MOX", count=8),
+        sensors=SensorConfig(type="MOX", count=8, channels=_TURBULENT_CHANNELS, manufacturer="Figaro"),
+        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=50),
         extract=ExtractConfig(type="turbo"),
     ),
     "gas_sensor_array_low_concentration": DatasetInfo(
@@ -79,8 +228,8 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/1081/gas+sensor+array+low-concentration.zip",
         description="Gas Sensor Array Low-Concentration Dataset",
         tasks=["classification", "concentration_prediction"],
-        sensors=SensorConfig(type="MOX", count=8),
-        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=100),
+        sensors=SensorConfig(type="MOX", count=10, channels=_LOW_CONC_CHANNELS, manufacturer="Mixed"),
+        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=1),
         extract=ExtractConfig(type="standard"),
     ),
     "gas_sensor_array_temperature_modulation": DatasetInfo(
@@ -91,7 +240,8 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/487/gas+sensor+array+temperature+modulation.zip",
         description="Gas Sensor Array Temperature Modulation",
         tasks=["classification"],
-        sensors=SensorConfig(type="MOX", count=14),
+        sensors=SensorConfig(type="MOX", count=14, channels=_TEMP_MODULATION_CHANNELS, manufacturer="Figaro/FIS"),
+        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=3),
         extract=ExtractConfig(type="turbo"),
     ),
     "gas_sensor_array_under_dynamic_gas_mixtures": DatasetInfo(
@@ -102,7 +252,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/322/gas+sensor+array+under+dynamic+gas+mixtures.zip",
         description="Gas Sensor Array under Dynamic Gas Mixtures",
         tasks=["classification", "concentration_prediction"],
-        sensors=SensorConfig(type="MOX", count=16),
+        sensors=SensorConfig(type="MOX", count=16, channels=_DYNAMIC_MIXTURE_CHANNELS, manufacturer="Figaro"),
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=100),
         extract=ExtractConfig(type="standard"),
     ),
@@ -114,7 +264,8 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/308/gas+sensor+array+under+flow+modulation.zip",
         description="Gas Sensor Array under Flow Modulation",
         tasks=["classification"],
-        sensors=SensorConfig(type="MOX", count=16),
+        sensors=SensorConfig(type="MOX", count=16, channels=_FLOW_MODULATION_CHANNELS),
+        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=25),
         extract=ExtractConfig(type="turbo"),
     ),
     "gas_sensors_for_home_activity_monitoring": DatasetInfo(
@@ -125,7 +276,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/362/gas+sensors+for+home+activity+monitoring.zip",
         description="Gas Sensors for Home Activity Monitoring",
         tasks=["classification", "activity_recognition"],
-        sensors=SensorConfig(type="MOX", count=8),
+        sensors=SensorConfig(type="MOX", count=8, channels=_HOME_ACTIVITY_CHANNELS, manufacturer="Figaro"),
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=1),
         extract=ExtractConfig(type="nested", nested_zip="HT_Sensor_dataset.zip"),
     ),
@@ -137,7 +288,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         url="https://archive.ics.uci.edu/static/public/361/twin+gas+sensor+arrays.zip",
         description="Twin Gas Sensor Arrays",
         tasks=["classification", "drift_compensation", "transfer_learning"],
-        sensors=SensorConfig(type="MOX", count=8),
+        sensors=SensorConfig(type="MOX", count=8, channels=_TWIN_GAS_CHANNELS, manufacturer="Figaro"),
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=100),
         extract=ExtractConfig(type="standard", subdir="data1"),
     ),

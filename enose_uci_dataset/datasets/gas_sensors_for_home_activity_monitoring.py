@@ -177,10 +177,15 @@ class GasSensorsForHomeActivityMonitoring(BaseEnoseDataset):
 
         return samples
 
+    # Columns that are sensor readings (to be kept for pretraining)
+    _sensor_columns = [f"sensor_{i}" for i in range(8)]
+    
     def _load_sample(self, record: SampleRecord) -> Tuple[pd.DataFrame, int]:
         df = pd.read_csv(record.path)
-        if "label_gas" in df.columns:
-            df = df.drop(columns=["label_gas"])
+        # Keep only sensor columns for pretraining
+        # (drop temp, humidity, t_s, date, label_gas)
+        sensor_cols = [c for c in self._sensor_columns if c in df.columns]
+        df = df[sensor_cols]
         return df, int(record.target)
 
     @property

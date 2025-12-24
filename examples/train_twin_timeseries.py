@@ -928,6 +928,9 @@ def main() -> None:
     if str(args.task) == "reg":
         monitor = "val/r2"
         ckpt_filename = "epoch{epoch:03d}-val_r2{val/r2:.4f}"
+    elif str(args.task) == "mtl":
+        monitor = "val/acc"
+        ckpt_filename = "epoch{epoch:03d}-val_acc{val/acc:.4f}"
     else:
         monitor = "val/acc"
         ckpt_filename = "epoch{epoch:03d}-val_acc{val/acc:.4f}"
@@ -941,6 +944,17 @@ def main() -> None:
     )
 
     callbacks = [ckpt]
+    
+    # 对于mtl任务，额外保存r2最优的checkpoint
+    if str(args.task) == "mtl":
+        ckpt_r2 = ModelCheckpoint(
+            monitor="val/r2",
+            mode="max",
+            save_last=False,
+            every_n_epochs=int(args.ckpt_every_n_epochs),
+            filename="epoch{epoch:03d}-val_r2{val/r2:.4f}",
+        )
+        callbacks.append(ckpt_r2)
     if args.early_stopping:
         if str(args.task) == "mtl":
             print(f"Using DualMonitorEarlyStopping for task mtl (acc & r2)")
