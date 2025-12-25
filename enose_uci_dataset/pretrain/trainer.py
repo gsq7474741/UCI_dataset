@@ -132,6 +132,7 @@ def create_trainer(
     export_best: bool = True,
     export_format: str = "torchscript",  # torchscript is more compatible than onnx
     max_channels: int = 20,
+    additional_callbacks: Optional[List[Callback]] = None,
     **kwargs,
 ) -> L.Trainer:
     """Create a Lightning Trainer with sensible defaults for pretraining.
@@ -196,6 +197,10 @@ def create_trainer(
                 max_channels=max_channels,
             )
         )
+    
+    # Add any additional callbacks (e.g., DownstreamProbeCallback)
+    if additional_callbacks:
+        callbacks.extend(additional_callbacks)
     
     # Loggers - use multiple loggers for comprehensive tracking
     loggers = []

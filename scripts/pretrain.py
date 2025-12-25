@@ -49,18 +49,27 @@ def parse_args():
     parser.add_argument("--num-decoder-layers", type=int, default=4, help="Decoder layers")
     parser.add_argument("--patch-size", type=int, default=16, help="Patch size")
     parser.add_argument("--num-embeddings", type=int, default=512, help="VQ codebook size")
-    parser.add_argument("--commitment-cost", type=float, default=0.25, help="VQ commitment cost")
+    parser.add_argument("--commitment-cost", type=float, default=1, help="VQ commitment cost")
     parser.add_argument("--mask-ratio", type=float, default=0.25, help="Channel mask ratio")
     parser.add_argument("--lambda-visible", type=float, default=1.0, help="Weight for visible channel reconstruction loss")
     parser.add_argument("--lambda-masked", type=float, default=1.0, help="Weight for masked channel prediction loss")
+    parser.add_argument("--disable-vq", action="store_true", help="Disable VQ layer (pure autoencoder)")
+    
+    # LR scheduler arguments
+    parser.add_argument("--lr-scheduler", type=str, default="cosine", 
+                        choices=["cosine_warmup", "cosine", "constant"], help="LR scheduler type")
+    parser.add_argument("--lr-warmup-steps", type=int, default=1000, help="Warmup steps for cosine_warmup scheduler")
+    parser.add_argument("--lr-T-mult", type=int, default=2, help="T_mult for cosine_warmup scheduler")
+    parser.add_argument("--lr-min", type=float, default=1e-6, help="Minimum learning rate")
     
     # Training arguments
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
-    parser.add_argument("--max-epochs", type=int, default=300, help="Max epochs")
+    parser.add_argument("--max-epochs", type=int, default=500, help="Max epochs")
     parser.add_argument("--learning-rate", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--max-length", type=int, default=4096, help="Max sequence length")
+    parser.add_argument("--max-length", type=int, default=1024, help="Max sequence length (1024 aligns with downstream TCN seq_len=1000)")
     parser.add_argument("--max-channels", type=int, default=16, help="Max channels")
-    parser.add_argument("--num-workers", type=int, default=4, help="DataLoader workers")
+    parser.add_argument("--num-workers", type=int, default=16, help="DataLoader workers")
+    parser.add_argument("--early-stopping-patience", type=int, default=50, help="Early stopping patience (epochs)")
     
     # Hardware arguments
     parser.add_argument("--accelerator", type=str, default="gpu", 
@@ -77,8 +86,8 @@ def parse_args():
                         help="Run name (default: experiment_name_YYYYMMDD_HHMMSS)")
     parser.add_argument("--use-wandb", action="store_true", help="Use Weights & Biases")
     parser.add_argument("--use-mlflow", action="store_true", help="Use MLflow logging")
-    parser.add_argument("--mlflow-tracking-uri", type=str, default=None,
-                        help="MLflow tracking URI (default: file://logs/mlruns)")
+    parser.add_argument("--mlflow-tracking-uri", type=str, default='http://localhost:5000',
+                        help="MLflow tracking URI (default: http://localhost:5000)")
     
     # Export arguments
     parser.add_argument("--export-best", action="store_true", default=True,
@@ -90,6 +99,16 @@ def parse_args():
     
     # Resume
     parser.add_argument("--resume-from", type=str, default=None, help="Checkpoint to resume")
+    
+    # Downstream probe arguments
+    parser.add_argument("--enable-probe", action="store_true", 
+                        help="Enable downstream task probe during validation")
+    parser.add_argument("--probe-every-n-epochs", type=int, default=10,
+                        help="Run downstream probe every N epochs")
+    parser.add_argument("--tcn-checkpoint", type=str, default='/root/UCI_dataset/runs/tcn_baseline_normalized_man/version_0/checkpoints/epochepoch=614-val_r2val/r2=0.7372.ckpt',
+                        help="Path to trained TCN checkpoint for R² evaluation (must use input_norm=per_sample)")
+    parser.add_argument("--probe-mask-channels", type=int, nargs="+", default=[0, 1],
+                        help="Channels to mask during probing (default: [0, 1])")
     
     return parser.parse_args()
 
@@ -153,6 +172,11 @@ def main():
             mask_ratio=args.mask_ratio,
             lambda_visible=args.lambda_visible,
             lambda_masked=args.lambda_masked,
+            disable_vq=args.disable_vq,
+            lr_scheduler=args.lr_scheduler,
+            lr_warmup_steps=args.lr_warmup_steps,
+            lr_T_mult=args.lr_T_mult,
+            lr_min=args.lr_min,
         )
     
     # Count parameters
@@ -173,6 +197,19 @@ def main():
     import torch
     torch.set_float32_matmul_precision('medium')
     
+    # Prepare additional callbacks
+    additional_callbacks = []
+    if args.enable_probe:
+        from enose_uci_dataset.pretrain import DownstreamProbeCallback
+        probe_callback = DownstreamProbeCallback(
+            twin_gas_root=args.root,
+            tcn_checkpoint=args.tcn_checkpoint,
+            probe_every_n_epochs=args.probe_every_n_epochs,
+            mask_channels=args.probe_mask_channels,
+        )
+        additional_callbacks.append(probe_callback)
+        print(f"Downstream probe enabled: every {args.probe_every_n_epochs} epochs, mask channels {args.probe_mask_channels}")
+    
     trainer, run_dir = create_trainer(
         max_epochs=args.max_epochs,
         accelerator=args.accelerator,
@@ -184,9 +221,11 @@ def main():
         use_wandb=args.use_wandb,
         use_mlflow=args.use_mlflow,
         mlflow_tracking_uri=args.mlflow_tracking_uri,
+        early_stopping_patience=args.early_stopping_patience,
         export_best=args.export_best,
         export_format=args.export_format,
         max_channels=args.max_channels,
+        additional_callbacks=additional_callbacks,
     )
     
     # Train

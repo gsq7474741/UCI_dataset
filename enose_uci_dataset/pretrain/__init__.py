@@ -9,9 +9,11 @@ Self-supervised pretraining for gas sensor time series using:
 from .model import EnoseVQVAE
 from .datamodule import EnosePretrainingDataModule
 from .trainer import create_trainer
+from .downstream_probe import DownstreamProbeCallback
 
 __all__ = [
     "EnoseVQVAE",
     "EnosePretrainingDataModule", 
     "create_trainer",
+    "DownstreamProbeCallback",
 ]

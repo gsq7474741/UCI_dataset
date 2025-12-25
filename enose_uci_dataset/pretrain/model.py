@@ -237,6 +237,14 @@ class EnoseEncoder(nn.Module):
         # Channel embedding
         self.channel_embed = nn.Embedding(max_channels, d_model)
         
+        # Learnable mask token (like BERT's [MASK]) - crucial for cross-channel learning
+        # When a channel is masked (zeroed), we replace its patch embeddings with this token
+        # This gives the model a meaningful Query vector for attending to visible channels
+        # 
+        # CRITICAL: Initialize with same scale as patch embeddings (~0.5 std, ~6.5 norm)
+        # Previous init (0.02 std) was ~30x smaller, making mask token invisible in attention!
+        self.mask_token = nn.Parameter(torch.randn(1, 1, d_model) * 0.5)
+        
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
@@ -257,13 +265,15 @@ class EnoseEncoder(nn.Module):
         channel_mask: Optional[torch.Tensor] = None,
         sensor_indices: Optional[torch.Tensor] = None,
         sample_rate: Optional[torch.Tensor] = None,
+        training_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Args:
             x: [B, C, T] input time series
-            channel_mask: [B, C] boolean mask (True = available)
+            channel_mask: [B, C] boolean mask for PADDING (True = valid, False = padding)
             sensor_indices: [B, C] sensor model indices
             sample_rate: [B] sample rate in Hz for each sample
+            training_mask: [B, C] boolean mask for TRAINING (True = visible, False = masked for learning)
             
         Returns:
             z: [B, C, num_patches, D] encoded representations
@@ -273,6 +283,25 @@ class EnoseEncoder(nn.Module):
         # Patch embedding: [B, C, num_patches, D]
         patches = self.patch_embed(x)
         num_patches = patches.size(2)
+        
+        # CRITICAL: Replace TRAINING-masked channel patches with learnable mask token
+        # This gives masked channels a meaningful Query vector for cross-channel attention
+        # Use torch.where to maintain gradient flow (direct assignment breaks gradients!)
+        # 
+        # IMPORTANT: Only use mask_token for channels that are:
+        #   1. Valid (not padding) - indicated by channel_mask = True
+        #   2. Masked for training - indicated by training_mask = False
+        # Do NOT use mask_token for padding channels!
+        if training_mask is not None:
+            # training_mask: [B, C] where True = visible, False = masked for training
+            # Expand mask_token to match patches shape: [B, C, num_patches, D]
+            mask_token_expanded = self.mask_token.expand(B, C, num_patches, -1)
+            
+            # Expand training_mask to patches shape
+            training_mask_expanded = training_mask[:, :C].unsqueeze(-1).unsqueeze(-1)  # [B, C, 1, 1]
+            
+            # Use torch.where: where training_mask is True (visible), keep patches; else use mask_token
+            patches = torch.where(training_mask_expanded, patches, mask_token_expanded)
         
         # Flatten channels and patches for transformer
         # [B, C * num_patches, D]
@@ -302,17 +331,24 @@ class EnoseEncoder(nn.Module):
             rate_enc = rate_enc.unsqueeze(1).expand(-1, C * num_patches, -1)  # [B, C*num_patches, D]
             patches = patches + rate_enc
         
-        # Create attention mask for masked channels
+        # Create attention mask ONLY for TRUE PADDING channels (not training-masked channels)
+        # IMPORTANT: channel_mask here indicates which channels are VALID (True = valid, not padding)
+        # Training-masked channels (zeroed for learning) should still attend to other channels!
+        # Only TRUE padding channels (from pad_channels in collate) should be ignored in attention.
         attn_mask = None
         if channel_mask is not None:
-            # Expand channel mask to patch level
-            patch_mask = channel_mask.unsqueeze(2).expand(-1, -1, num_patches)  # [B, C, num_patches]
-            patch_mask = patch_mask.reshape(B, C * num_patches)  # [B, C * num_patches]
-            # For transformer, True means ignore
-            attn_mask = ~patch_mask
+            # channel_mask: True = valid channel, False = padding OR training-masked
+            # We need to distinguish padding from training-masked channels
+            # Padding channels have ALL zeros and should be ignored
+            # Training-masked channels have zeros but should participate in attention
+            # 
+            # For now, we allow ALL channels to attend (no src_key_padding_mask)
+            # The model should learn to reconstruct masked channels from visible ones
+            # through the standard self-attention mechanism
+            pass  # No attention masking - all channels can see each other
         
-        # Transformer encoding
-        z = self.transformer(patches, src_key_padding_mask=attn_mask)
+        # Transformer encoding (no src_key_padding_mask so masked channels can attend to visible ones)
+        z = self.transformer(patches)
         
         # Reshape back: [B, C, num_patches, D]
         z = z.reshape(B, C, num_patches, self.d_model)
@@ -322,7 +358,15 @@ class EnoseEncoder(nn.Module):
 
 
 class EnoseDecoder(nn.Module):
-    """Decoder for e-nose time series reconstruction."""
+    """MAE-style Decoder for e-nose time series reconstruction.
+    
+    Key insight: Use cross-attention where:
+    - Memory (Key/Value): encoder outputs from ALL channels (visible have real info, masked have mask_token)
+    - Query: learnable decoder queries + channel/sensor metadata
+    
+    This allows the decoder to use channel position metadata to determine WHAT to reconstruct,
+    while attending to visible channels to learn HOW to reconstruct it.
+    """
     
     def __init__(
         self,
@@ -333,14 +377,24 @@ class EnoseDecoder(nn.Module):
         dropout: float = 0.1,
         patch_size: int = 16,
         max_channels: int = 20,
+        max_patches: int = 256,
     ):
         super().__init__()
         self.d_model = d_model
         self.patch_size = patch_size
+        self.max_patches = max_patches
         
+        # Metadata embeddings (same as before)
         self.channel_embed = nn.Embedding(max_channels, d_model)
         self.sensor_embed = SensorEmbedding(d_model)
         self.sample_rate_encoding = SampleRateEncoding(d_model, base_patch_size=patch_size)
+        
+        # Learnable positional encoding for decoder queries (use large max_len for flexibility)
+        self.pos_encoding = PositionalEncoding(d_model, max_len=10000, dropout=dropout)
+        
+        # Learnable decoder query tokens - these ask "what should channel X, patch Y be?"
+        # Initialized with proper scale to match encoder outputs
+        self.decoder_query = nn.Parameter(torch.randn(1, 1, d_model) * 0.5)
         
         decoder_layer = nn.TransformerDecoderLayer(
             d_model=d_model,
@@ -359,43 +413,72 @@ class EnoseDecoder(nn.Module):
         z: torch.Tensor,
         sensor_indices: Optional[torch.Tensor] = None,
         sample_rate: Optional[torch.Tensor] = None,
+        training_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
+        MAE-style decoding: use cross-attention from decoder queries to encoder outputs.
+        
         Args:
-            z: [B, C, num_patches, D] quantized representations
+            z: [B, C, num_patches, D] quantized encoder representations
             sensor_indices: [B, C] sensor model indices
             sample_rate: [B] sample rate in Hz for each sample
+            training_mask: [B, C] boolean mask (True = visible, False = masked) - used for memory masking
             
         Returns:
             x_recon: [B, C, T] reconstructed time series
         """
         B, C, num_patches, D = z.shape
         
-        # Flatten for transformer
-        z_flat = z.reshape(B, C * num_patches, D)
+        # === Build Memory (Key/Value) from encoder outputs ===
+        # Flatten encoder outputs: [B, C * num_patches, D]
+        memory = z.reshape(B, C * num_patches, D)
         
-        # Add channel embedding
+        # Add channel embedding to memory
         channel_ids = torch.arange(C, device=z.device).unsqueeze(0).expand(B, -1)
         channel_emb = self.channel_embed(channel_ids)  # [B, C, D]
-        channel_emb = channel_emb.unsqueeze(2).expand(-1, -1, num_patches, -1)
-        channel_emb = channel_emb.reshape(B, C * num_patches, D)
-        z_flat = z_flat + channel_emb
+        channel_emb_expanded = channel_emb.unsqueeze(2).expand(-1, -1, num_patches, -1)
+        channel_emb_flat = channel_emb_expanded.reshape(B, C * num_patches, D)
+        memory = memory + channel_emb_flat
         
-        # Add sensor embedding
+        # Add sensor embedding to memory
         if sensor_indices is not None:
             sensor_emb = self.sensor_embed(sensor_indices)
-            sensor_emb = sensor_emb.unsqueeze(2).expand(-1, -1, num_patches, -1)
-            sensor_emb = sensor_emb.reshape(B, C * num_patches, D)
-            z_flat = z_flat + sensor_emb
+            sensor_emb_expanded = sensor_emb.unsqueeze(2).expand(-1, -1, num_patches, -1)
+            sensor_emb_flat = sensor_emb_expanded.reshape(B, C * num_patches, D)
+            memory = memory + sensor_emb_flat
+        
+        # Add sample rate encoding to memory
+        if sample_rate is not None:
+            rate_enc = self.sample_rate_encoding(sample_rate)  # [B, D]
+            rate_enc_expanded = rate_enc.unsqueeze(1).expand(-1, C * num_patches, -1)
+            memory = memory + rate_enc_expanded
+        
+        # === Build Query for decoder ===
+        # Query = learnable token + positional encoding + channel embedding + sensor embedding
+        # This tells the decoder "reconstruct channel X, patch Y"
+        
+        # Start with learnable query token expanded to all positions
+        query = self.decoder_query.expand(B, C * num_patches, -1).clone()
+        
+        # Add positional encoding (repeat for each channel)
+        pos_enc = self.pos_encoding.pe[:, :num_patches, :].repeat(1, C, 1)  # [1, C*num_patches, D]
+        query = query + pos_enc
+        
+        # Add channel embedding (tells decoder WHICH channel to reconstruct)
+        query = query + channel_emb_flat
+        
+        # Add sensor embedding (tells decoder the sensor type for this channel)
+        if sensor_indices is not None:
+            query = query + sensor_emb_flat
         
         # Add sample rate encoding
         if sample_rate is not None:
-            rate_enc = self.sample_rate_encoding(sample_rate)  # [B, D]
-            rate_enc = rate_enc.unsqueeze(1).expand(-1, C * num_patches, -1)  # [B, C*num_patches, D]
-            z_flat = z_flat + rate_enc
+            query = query + rate_enc_expanded
         
-        # Decode
-        decoded = self.transformer(z_flat, z_flat)
+        # === Cross-attention decoding ===
+        # Query attends to Memory to gather information for reconstruction
+        # The key insight: masked channels' queries can attend to visible channels' memory
+        decoded = self.transformer(query, memory)
         
         # Reconstruct patches
         patches = self.to_patch(decoded)  # [B, C * num_patches, patch_size]
@@ -430,10 +513,16 @@ class EnoseVQVAE(L.LightningModule):
         max_channels: int = 20,
         learning_rate: float = 1e-4,
         weight_decay: float = 1e-5,
-        warmup_steps: int = 1000,
         mask_ratio: float = 0.25,
         lambda_visible: float = 1.0,
         lambda_masked: float = 1.0,
+        # VQ control
+        disable_vq: bool = False,
+        # LR scheduler params
+        lr_scheduler: str = "cosine_warmup",  # cosine_warmup, cosine, constant
+        lr_warmup_steps: int = 1000,
+        lr_T_mult: int = 2,
+        lr_min: float = 1e-6,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -481,25 +570,32 @@ class EnoseVQVAE(L.LightningModule):
         channel_mask: Optional[torch.Tensor] = None,
         sensor_indices: Optional[torch.Tensor] = None,
         sample_rate: Optional[torch.Tensor] = None,
+        training_mask: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Args:
             x: [B, C, T] input time series
-            channel_mask: [B, C] boolean mask (True = available)
+            channel_mask: [B, C] boolean mask for PADDING (True = valid, False = padding)
             sensor_indices: [B, C] sensor model indices
             sample_rate: [B] sample rate in Hz for each sample
+            training_mask: [B, C] boolean mask for TRAINING (True = visible, False = masked for learning)
         """
-        # Encode
-        z = self.encoder(x, channel_mask, sensor_indices, sample_rate)
+        # Encode - pass training_mask to use mask_token for masked channels
+        z = self.encoder(x, channel_mask, sensor_indices, sample_rate, training_mask)
         
-        # Vector quantize
+        # Vector quantize (or bypass if disabled)
         B, C, num_patches, D = z.shape
-        z_flat = z.reshape(B * C, num_patches, D)
-        z_q, vq_loss, perplexity = self.vq(z_flat)
-        z_q = z_q.reshape(B, C, num_patches, D)
+        if self.hparams.disable_vq:
+            z_q = z
+            vq_loss = torch.tensor(0.0, device=z.device)
+            perplexity = torch.tensor(0.0, device=z.device)
+        else:
+            z_flat = z.reshape(B * C, num_patches, D)
+            z_q, vq_loss, perplexity = self.vq(z_flat)
+            z_q = z_q.reshape(B, C, num_patches, D)
         
-        # Decode
-        x_recon = self.decoder(z_q, sensor_indices, sample_rate)
+        # Decode - pass training_mask for MAE-style cross-attention
+        x_recon = self.decoder(z_q, sensor_indices, sample_rate, training_mask)
         
         return {
             "x_recon": x_recon,
@@ -563,8 +659,8 @@ class EnoseVQVAE(L.LightningModule):
         # Apply channel masking during training (only to valid channels)
         x_masked, train_mask = self._apply_random_mask(x, valid_channel_mask)
         
-        # Forward pass - use train_mask for attention (visible channels only)
-        outputs = self(x_masked, train_mask, sensor_indices, sample_rate)
+        # Forward pass - pass BOTH valid_channel_mask (for padding) and train_mask (for mask_token)
+        outputs = self(x_masked, valid_channel_mask, sensor_indices, sample_rate, training_mask=train_mask)
         
         # Separate reconstruction losses for visible and masked channels
         # But only compute loss on VALID channels (exclude padding)
@@ -620,11 +716,11 @@ class EnoseVQVAE(L.LightningModule):
         self.train_vq_loss(losses["vq_loss"].detach())
         
         self.log("train/loss", self.train_loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log("train/recon_loss", self.train_recon_loss, on_step=True, on_epoch=True)
-        self.log("train/recon_visible", self.train_recon_visible, on_step=True, on_epoch=True)
-        self.log("train/recon_masked", self.train_recon_masked, on_step=True, on_epoch=True)
-        self.log("train/vq_loss", self.train_vq_loss, on_step=True, on_epoch=True)
-        self.log("train/perplexity", losses["perplexity"].detach(), on_step=True, on_epoch=True)
+        self.log("train/recon_loss", self.train_recon_loss, on_step=False, on_epoch=True)
+        self.log("train/recon_visible", self.train_recon_visible, on_step=False, on_epoch=True)
+        self.log("train/recon_masked", self.train_recon_masked, on_step=False, on_epoch=True)
+        self.log("train/vq_loss", self.train_vq_loss, on_step=False, on_epoch=True)
+        self.log("train/perplexity", losses["perplexity"].detach(), on_step=False, on_epoch=True)
         
         return losses["loss"]
     
@@ -656,19 +752,37 @@ class EnoseVQVAE(L.LightningModule):
             weight_decay=self.hparams.weight_decay,
         )
         
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-            optimizer,
-            T_0=self.hparams.warmup_steps,
-            T_mult=2,
-        )
+        lr_scheduler_type = self.hparams.lr_scheduler
         
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",
-            },
-        }
+        if lr_scheduler_type == "cosine_warmup":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                optimizer,
+                T_0=self.hparams.lr_warmup_steps,
+                T_mult=self.hparams.lr_T_mult,
+                eta_min=self.hparams.lr_min,
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
+                },
+            }
+        elif lr_scheduler_type == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=self.trainer.max_epochs if self.trainer else 500,
+                eta_min=self.hparams.lr_min,
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "epoch",
+                },
+            }
+        else:  # constant
+            return optimizer
     
     def get_latent(
         self,

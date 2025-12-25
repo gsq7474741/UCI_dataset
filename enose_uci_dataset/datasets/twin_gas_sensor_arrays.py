@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 
 from ._base import BaseEnoseDataset, SampleRecord
@@ -157,13 +158,29 @@ class TwinGasSensorArrays(BaseEnoseDataset):
         return samples
 
     def _load_sample(self, record: SampleRecord) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        # 原始文件：time + 8 sensor columns
-        df = pd.read_csv(record.path, sep=r"\s+", header=None)
-        if df.shape[1] < 9:
-            raise RuntimeError(f"Unexpected format: {record.path}")
+        # Check for cached npy file first (much faster than reading CSV each time)
+        cache_path = record.path.with_suffix('.npy')
+        
+        if cache_path.exists():
+            # Load from cache
+            data_array = np.load(cache_path)
+            df = pd.DataFrame(data_array, columns=[f"sensor_{i}" for i in range(8)])
+        else:
+            # 原始文件：time + 8 sensor columns
+            df = pd.read_csv(record.path, sep=r"\s+", header=None)
+            if df.shape[1] < 9:
+                raise RuntimeError(f"Unexpected format: {record.path}")
 
-        df = df.iloc[:, :9]
-        df.columns = ["t_s"] + [f"sensor_{i}" for i in range(8)]
+            # Only return sensor columns (exclude t_s timestamp to match downstream TCN)
+            df = df.iloc[:, 1:9]  # Skip column 0 (t_s), take columns 1-8 (sensors)
+            df.columns = [f"sensor_{i}" for i in range(8)]
+            
+            # Save to cache for future use
+            try:
+                np.save(cache_path, df.values.astype(np.float32))
+            except Exception:
+                pass  # Ignore cache write errors
+        
         return df, dict(record.target)
 
     def extra_repr(self) -> str:
