@@ -49,18 +49,26 @@ def parse_args():
     parser.add_argument("--num-decoder-layers", type=int, default=4, help="Decoder layers")
     parser.add_argument("--patch-size", type=int, default=16, help="Patch size")
     parser.add_argument("--num-embeddings", type=int, default=512, help="VQ codebook size")
-    parser.add_argument("--commitment-cost", type=float, default=1, help="VQ commitment cost")
+    parser.add_argument("--commitment-cost", type=float, default=0.25, help="VQ commitment cost")
     parser.add_argument("--mask-ratio", type=float, default=0.25, help="Channel mask ratio")
     parser.add_argument("--lambda-visible", type=float, default=1.0, help="Weight for visible channel reconstruction loss")
     parser.add_argument("--lambda-masked", type=float, default=1.0, help="Weight for masked channel prediction loss")
     parser.add_argument("--disable-vq", action="store_true", help="Disable VQ layer (pure autoencoder)")
+    parser.add_argument("--loss-type", type=str, default="mse",
+                        choices=["mse", "mae", "huber", "cosine", "correlation", "mse_corr", "mse_mmd"],
+                        help="Reconstruction loss type")
+    parser.add_argument("--huber-delta", type=float, default=1.0, help="Delta for Huber loss")
+    parser.add_argument("--optimizer", type=str, default="soap",
+                        choices=["adamw", "muon", "soap"],
+                        help="Optimizer type")
     
     # LR scheduler arguments
-    parser.add_argument("--lr-scheduler", type=str, default="cosine", 
-                        choices=["cosine_warmup", "cosine", "constant"], help="LR scheduler type")
-    parser.add_argument("--lr-warmup-steps", type=int, default=1000, help="Warmup steps for cosine_warmup scheduler")
+    parser.add_argument("--lr-scheduler", type=str, default="cosine_warmup", 
+                        choices=["cosine_warmup", "cosine", "constant", "onecycle", "plateau", "warmup_cosine", "cosine_restart_decay"],
+                        help="LR scheduler type")
+    parser.add_argument("--lr-warmup-steps", type=int, default=200, help="Warmup steps for cosine_warmup scheduler")
     parser.add_argument("--lr-T-mult", type=int, default=2, help="T_mult for cosine_warmup scheduler")
-    parser.add_argument("--lr-min", type=float, default=1e-6, help="Minimum learning rate")
+    parser.add_argument("--lr-min", type=float, default=1e-5, help="Minimum learning rate")
     
     # Training arguments
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
@@ -69,7 +77,11 @@ def parse_args():
     parser.add_argument("--max-length", type=int, default=1024, help="Max sequence length (1024 aligns with downstream TCN seq_len=1000)")
     parser.add_argument("--max-channels", type=int, default=16, help="Max channels")
     parser.add_argument("--num-workers", type=int, default=16, help="DataLoader workers")
-    parser.add_argument("--early-stopping-patience", type=int, default=50, help="Early stopping patience (epochs)")
+    parser.add_argument("--early-stopping-patience", type=int, default=300, help="Early stopping patience (epochs)")
+    parser.add_argument("--gradient-clip-val", type=float, default=1.0, help="Gradient clipping value")
+    parser.add_argument("--accumulate-grad-batches", type=int, default=1, help="Gradient accumulation steps (effective batch = batch_size * accumulate)")
+    parser.add_argument("--val-check-interval", type=float, default=None, help="Validation check interval (None for every epoch, 0.5 for twice per epoch)")
+    parser.add_argument("--checkpoint-monitor", type=str, default="val/loss", help="Metric to monitor for checkpointing")
     
     # Hardware arguments
     parser.add_argument("--accelerator", type=str, default="gpu", 
@@ -173,6 +185,9 @@ def main():
             lambda_visible=args.lambda_visible,
             lambda_masked=args.lambda_masked,
             disable_vq=args.disable_vq,
+            loss_type=args.loss_type,
+            huber_delta=args.huber_delta,
+            optimizer_type=args.optimizer,
             lr_scheduler=args.lr_scheduler,
             lr_warmup_steps=args.lr_warmup_steps,
             lr_T_mult=args.lr_T_mult,
@@ -222,6 +237,10 @@ def main():
         use_mlflow=args.use_mlflow,
         mlflow_tracking_uri=args.mlflow_tracking_uri,
         early_stopping_patience=args.early_stopping_patience,
+        gradient_clip_val=args.gradient_clip_val,
+        accumulate_grad_batches=args.accumulate_grad_batches,
+        val_check_interval=args.val_check_interval,
+        checkpoint_monitor=args.checkpoint_monitor,
         export_best=args.export_best,
         export_format=args.export_format,
         max_channels=args.max_channels,

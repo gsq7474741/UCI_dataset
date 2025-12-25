@@ -518,6 +518,11 @@ class EnoseVQVAE(L.LightningModule):
         lambda_masked: float = 1.0,
         # VQ control
         disable_vq: bool = False,
+        # Loss type
+        loss_type: str = "mse",  # mse, mae, huber, cosine, correlation, mse_mmd
+        huber_delta: float = 1.0,
+        # Optimizer params
+        optimizer_type: str = "adamw",  # adamw, muon, soap
         # LR scheduler params
         lr_scheduler: str = "cosine_warmup",  # cosine_warmup, cosine, constant
         lr_warmup_steps: int = 1000,
@@ -646,6 +651,111 @@ class EnoseVQVAE(L.LightningModule):
         
         return x_masked, mask
     
+    def _compute_recon_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Compute reconstruction loss based on configured loss type.
+        
+        Args:
+            pred: Predicted values (flattened)
+            target: Target values (flattened)
+            
+        Returns:
+            Scalar loss value
+        """
+        loss_type = self.hparams.loss_type
+        
+        if loss_type == "mse":
+            return F.mse_loss(pred, target)
+        
+        elif loss_type == "mae":
+            return F.l1_loss(pred, target)
+        
+        elif loss_type == "huber":
+            return F.huber_loss(pred, target, delta=self.hparams.huber_delta)
+        
+        elif loss_type == "cosine":
+            # Cosine similarity loss: 1 - cos_sim
+            # Reshape to [N, D] for cosine similarity
+            if pred.dim() == 1:
+                pred = pred.unsqueeze(0)
+                target = target.unsqueeze(0)
+            cos_sim = F.cosine_similarity(pred, target, dim=-1)
+            return 1 - cos_sim.mean()
+        
+        elif loss_type == "correlation":
+            # Pearson correlation loss: 1 - correlation
+            pred_centered = pred - pred.mean()
+            target_centered = target - target.mean()
+            pred_std = pred_centered.std() + 1e-8
+            target_std = target_centered.std() + 1e-8
+            correlation = (pred_centered * target_centered).mean() / (pred_std * target_std)
+            return 1 - correlation
+        
+        elif loss_type == "mse_corr":
+            # Combined MSE + Correlation loss
+            mse = F.mse_loss(pred, target)
+            pred_centered = pred - pred.mean()
+            target_centered = target - target.mean()
+            pred_std = pred_centered.std() + 1e-8
+            target_std = target_centered.std() + 1e-8
+            correlation = (pred_centered * target_centered).mean() / (pred_std * target_std)
+            return mse + 0.5 * (1 - correlation)
+        
+        elif loss_type == "mse_mmd":
+            # Combined MSE + MMD (Maximum Mean Discrepancy) loss
+            mse = F.mse_loss(pred, target)
+            mmd = self._compute_mmd(pred, target)
+            return mse + 0.5 * mmd
+        
+        else:
+            raise ValueError(f"Unknown loss type: {loss_type}")
+    
+    def _compute_mmd(self, x: torch.Tensor, y: torch.Tensor, kernel: str = "rbf") -> torch.Tensor:
+        """Compute Maximum Mean Discrepancy (MMD) between two distributions.
+        
+        Args:
+            x: Samples from distribution P (flattened)
+            y: Samples from distribution Q (flattened)
+            kernel: Kernel type ('rbf' or 'linear')
+            
+        Returns:
+            MMD distance (scalar)
+        """
+        # Reshape to [N, 1] for kernel computation
+        x = x.view(-1, 1)
+        y = y.view(-1, 1)
+        
+        # Sample subset for efficiency (MMD is O(n²))
+        max_samples = 1000
+        if x.shape[0] > max_samples:
+            idx = torch.randperm(x.shape[0], device=x.device)[:max_samples]
+            x = x[idx]
+        if y.shape[0] > max_samples:
+            idx = torch.randperm(y.shape[0], device=y.device)[:max_samples]
+            y = y[idx]
+        
+        if kernel == "rbf":
+            # RBF kernel with automatic bandwidth (median heuristic)
+            xx = torch.cdist(x, x) ** 2
+            yy = torch.cdist(y, y) ** 2
+            xy = torch.cdist(x, y) ** 2
+            
+            # Median heuristic for bandwidth
+            median_dist = torch.median(torch.cat([xx.view(-1), yy.view(-1), xy.view(-1)]))
+            sigma = median_dist / (2 * torch.log(torch.tensor(x.shape[0] + 1.0, device=x.device)))
+            sigma = torch.clamp(sigma, min=1e-5)
+            
+            k_xx = torch.exp(-xx / (2 * sigma))
+            k_yy = torch.exp(-yy / (2 * sigma))
+            k_xy = torch.exp(-xy / (2 * sigma))
+        else:  # linear kernel
+            k_xx = x @ x.T
+            k_yy = y @ y.T
+            k_xy = x @ y.T
+        
+        # MMD² = E[k(x,x')] + E[k(y,y')] - 2*E[k(x,y)]
+        mmd = k_xx.mean() + k_yy.mean() - 2 * k_xy.mean()
+        return torch.clamp(mmd, min=0)  # MMD should be non-negative
+    
     def _compute_loss(
         self,
         batch: Dict[str, Any],
@@ -680,13 +790,13 @@ class EnoseVQVAE(L.LightningModule):
         
         # Visible channel reconstruction loss (only valid channels)
         if visible_mask.any():
-            loss_visible = F.mse_loss(x_recon[visible_mask], x[visible_mask])
+            loss_visible = self._compute_recon_loss(x_recon[visible_mask], x[visible_mask])
         else:
             loss_visible = torch.tensor(0.0, device=x.device)
         
         # Masked channel prediction loss (only valid channels)
         if masked_mask.any():
-            loss_masked = F.mse_loss(x_recon[masked_mask], x[masked_mask])
+            loss_masked = self._compute_recon_loss(x_recon[masked_mask], x[masked_mask])
         else:
             loss_masked = torch.tensor(0.0, device=x.device)
         
@@ -746,11 +856,41 @@ class EnoseVQVAE(L.LightningModule):
         self.log("val/best_loss", self.val_best_loss.compute(), prog_bar=True)
     
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(),
-            lr=self.hparams.learning_rate,
-            weight_decay=self.hparams.weight_decay,
-        )
+        # Select optimizer
+        optimizer_type = self.hparams.optimizer_type
+        
+        if optimizer_type == "adamw":
+            optimizer = torch.optim.AdamW(
+                self.parameters(),
+                lr=self.hparams.learning_rate,
+                weight_decay=self.hparams.weight_decay,
+            )
+        elif optimizer_type == "muon":
+            # Muon optimizer (PyTorch 2.x built-in)
+            try:
+                from torch.optim import Muon
+                optimizer = Muon(
+                    self.parameters(),
+                    lr=self.hparams.learning_rate,
+                    momentum=0.95,
+                )
+            except ImportError:
+                print("Warning: Muon not available, falling back to AdamW")
+                optimizer = torch.optim.AdamW(
+                    self.parameters(),
+                    lr=self.hparams.learning_rate,
+                    weight_decay=self.hparams.weight_decay,
+                )
+        elif optimizer_type == "soap":
+            from enose_uci_dataset.pretrain.optimizers import SOAP
+            optimizer = SOAP(
+                self.parameters(),
+                lr=self.hparams.learning_rate,
+                weight_decay=self.hparams.weight_decay,
+                precondition_frequency=10,
+            )
+        else:
+            raise ValueError(f"Unknown optimizer type: {optimizer_type}")
         
         lr_scheduler_type = self.hparams.lr_scheduler
         
@@ -779,6 +919,113 @@ class EnoseVQVAE(L.LightningModule):
                 "lr_scheduler": {
                     "scheduler": scheduler,
                     "interval": "epoch",
+                },
+            }
+        elif lr_scheduler_type == "onecycle":
+            # OneCycleLR: single cycle, no restart, smooth warmup and decay
+            # Estimate total steps
+            if self.trainer and self.trainer.estimated_stepping_batches:
+                total_steps = self.trainer.estimated_stepping_batches
+            else:
+                total_steps = 10000  # fallback
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                max_lr=self.hparams.learning_rate,
+                total_steps=total_steps,
+                pct_start=0.1,  # 10% warmup
+                anneal_strategy='cos',
+                final_div_factor=self.hparams.learning_rate / self.hparams.lr_min,
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
+                },
+            }
+        elif lr_scheduler_type == "plateau":
+            # ReduceLROnPlateau: reduce LR when val loss plateaus
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode='min',
+                factor=0.5,
+                patience=20,
+                min_lr=self.hparams.lr_min,
+                verbose=True,
+            )
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "monitor": "val/loss",
+                    "interval": "epoch",
+                },
+            }
+        elif lr_scheduler_type == "warmup_cosine":
+            # Linear warmup + cosine decay (no restart)
+            from torch.optim.lr_scheduler import LambdaLR
+            import math
+            
+            warmup_steps = self.hparams.lr_warmup_steps
+            if self.trainer and self.trainer.estimated_stepping_batches:
+                total_steps = self.trainer.estimated_stepping_batches
+            else:
+                total_steps = 10000
+            
+            def lr_lambda(current_step):
+                if current_step < warmup_steps:
+                    # Linear warmup
+                    return float(current_step) / float(max(1, warmup_steps))
+                # Cosine decay
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return max(self.hparams.lr_min / self.hparams.learning_rate, 
+                          0.5 * (1.0 + math.cos(math.pi * progress)))
+            
+            scheduler = LambdaLR(optimizer, lr_lambda)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
+                },
+            }
+        elif lr_scheduler_type == "cosine_restart_decay":
+            # Cosine annealing with warm restarts AND peak decay
+            # Each restart, the peak LR is multiplied by lr_decay_factor
+            from torch.optim.lr_scheduler import LambdaLR
+            import math
+            
+            T_0 = self.hparams.lr_warmup_steps  # Initial period
+            T_mult = self.hparams.lr_T_mult
+            lr_decay = 0.8  # Peak decay factor per restart
+            eta_min_ratio = self.hparams.lr_min / self.hparams.learning_rate
+            
+            def lr_lambda(current_step):
+                # Find which cycle we're in and position within cycle
+                step = current_step
+                T_cur = T_0
+                cycle = 0
+                
+                while step >= T_cur:
+                    step -= T_cur
+                    T_cur = int(T_cur * T_mult)
+                    cycle += 1
+                
+                # Peak LR for this cycle (decays each restart)
+                peak_mult = lr_decay ** cycle
+                
+                # Cosine annealing within cycle
+                cos_value = 0.5 * (1 + math.cos(math.pi * step / T_cur))
+                
+                # Scale between eta_min and peak
+                return max(eta_min_ratio, eta_min_ratio + (peak_mult - eta_min_ratio) * cos_value)
+            
+            scheduler = LambdaLR(optimizer, lr_lambda)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
                 },
             }
         else:  # constant

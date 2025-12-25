@@ -44,7 +44,7 @@ class DownstreamProbeCallback(Callback):
         twin_gas_root: str = ".cache",
         tcn_checkpoint: Optional[str] = None,
         probe_every_n_epochs: int = 10,
-        num_probe_samples: int = 50,
+        num_probe_samples: int = 400,
         mask_channels: List[int] = [0, 1],  # Channels to mask for probing
         seq_len: int = 1000,
         device: Optional[str] = None,
@@ -315,23 +315,14 @@ class DownstreamProbeCallback(Callback):
         x_recon = torch.cat(all_recon, dim=0)
         data = torch.tensor(data_np[:, :min(C, max_channels), :probe_length], dtype=torch.float32)
         
-        # CRITICAL: Scale correction for imputed channels
-        # VQ-VAE output range is compressed, need to rescale to match original data distribution
-        # For each masked channel, rescale recon to match the mean/std of visible channels in original data
-        x_recon_scaled = x_recon.clone()
-        for ch in self.mask_channels:
-            if ch < min(C, max_channels):
-                # Get stats from original data (all samples, this channel)
-                orig_mean = data[:, ch, :].mean()
-                orig_std = data[:, ch, :].std()
-                # Get stats from reconstructed data
-                recon_mean = x_recon[:, ch, :].mean()
-                recon_std = x_recon[:, ch, :].std()
-                # Rescale: (x - recon_mean) / recon_std * orig_std + orig_mean
-                if recon_std > 1e-6:
-                    x_recon_scaled[:, ch, :] = (x_recon[:, ch, :] - recon_mean) / recon_std * orig_std + orig_mean
+        # NOTE: Removed scale correction that used ground truth stats (information leakage!)
+        # The model should learn to output the correct scale during training.
+        # If scale mismatch is a real issue, consider:
+        # 1. Using correlation-based metrics instead of MSE
+        # 2. Training with scale-invariant loss
+        # 3. Using visible channel stats (not masked channel ground truth)
         
-        # Calculate imputation MSE on CPU (memory efficient) - use scaled version
+        # Calculate imputation MSE on CPU (memory efficient)
         mse_masked = 0.0
         count = 0
         for ch in self.mask_channels:
@@ -358,9 +349,10 @@ class DownstreamProbeCallback(Callback):
             "num_masked_channels": len(self.mask_channels),
         }
         
-        # If TCN model available, evaluate downstream R² using SCALED reconstruction
+        # If TCN model available, evaluate downstream R² using raw reconstruction
+        # (no scale correction to avoid information leakage from ground truth)
         if self._tcn_model is not None:
-            r2_metrics = self._evaluate_downstream_r2(data, x_recon_scaled)
+            r2_metrics = self._evaluate_downstream_r2(data, x_recon)
             metrics.update(r2_metrics)
         
         pl_module.train()
