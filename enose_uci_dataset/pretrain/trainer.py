@@ -159,23 +159,27 @@ def create_trainer(
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
     
-    # Generate run name with timestamp if not provided
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if run_name is None:
-        run_name = f"{experiment_name}_{timestamp}"
+    # Generate timestamp for this run (YYMMDDHHMMSS format)
+    run_timestamp = datetime.now().strftime("%y%m%d%H%M%S")
     
-    # Create experiment-specific directory with timestamp
-    run_dir = log_dir / experiment_name / run_name
+    # Base run name (without timestamp)
+    base_run_name = run_name if run_name else experiment_name
+    
+    # Full run name with timestamp (for MLflow)
+    full_run_name = f"{base_run_name}_{run_timestamp}"
+    
+    # Directory structure: log_dir/experiment_name/base_run_name/timestamp/
+    run_dir = log_dir / experiment_name / base_run_name / run_timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
     
     # Callbacks
     callbacks = [
         ModelCheckpoint(
             dirpath=run_dir / "checkpoints",
-            filename="epoch{epoch:03d}-loss{val/loss:.4f}",
+            filename="{epoch:03d}-loss{val-loss:.4f}",
             monitor=checkpoint_monitor,
             mode="min",
-            save_top_k=3,
+            save_top_k=1,  # Only save the best checkpoint
             save_last=True,
         ),
         EarlyStopping(
@@ -206,9 +210,10 @@ def create_trainer(
     loggers = []
     
     # TensorBoard logger (always enabled)
+    # Logs directly to run_dir (no extra subdirectory)
     tb_logger = TensorBoardLogger(
         save_dir=str(run_dir),
-        name="tensorboard",
+        name="",
         version="",
     )
     loggers.append(tb_logger)
@@ -221,30 +226,31 @@ def create_trainer(
     )
     loggers.append(csv_logger)
     
-    # MLflow logger (optional)
-    if use_mlflow:
-        if not HAS_MLFLOW:
-            print("Warning: MLflow not installed. Run `pip install mlflow` to enable MLflow logging.")
-        else:
-            tracking_uri = mlflow_tracking_uri or os.getenv("MLFLOW_TRACKING_URI", f"file://{log_dir.absolute()}/mlruns")
-            mlflow_logger = MLFlowLogger(
-                experiment_name=experiment_name,
-                run_name=run_name,
-                tracking_uri=tracking_uri,
-                log_model=True,
-            )
-            loggers.append(mlflow_logger)
-            print(f"MLflow tracking URI: {tracking_uri}")
+    # MLflow logger (disabled, using TensorBoard instead)
+    # if use_mlflow:
+    #     if not HAS_MLFLOW:
+    #         print("Warning: MLflow not installed. Run `pip install mlflow` to enable MLflow logging.")
+    #     else:
+    #         tracking_uri = mlflow_tracking_uri or os.getenv("MLFLOW_TRACKING_URI", f"file://{log_dir.absolute()}/mlruns")
+    #         mlflow_logger = MLFlowLogger(
+    #             experiment_name=experiment_name,
+    #             run_name=full_run_name,
+    #             tracking_uri=tracking_uri,
+    #             log_model=True,
+    #         )
+    #         loggers.append(mlflow_logger)
+    #         print(f"MLflow tracking URI: {tracking_uri}")
     
-    # W&B logger (optional)
-    if use_wandb:
-        wandb_logger = WandbLogger(
-            project=wandb_project,
-            name=run_name,
-            save_dir=str(run_dir),
-        )
-        loggers.append(wandb_logger)
+    # # W&B logger (optional)
+    # if use_wandb:
+    #     wandb_logger = WandbLogger(
+    #         project=wandb_project,
+    #         name=run_name,
+    #         save_dir=str(run_dir),
+    #     )
+    #     loggers.append(wandb_logger)
     
+    print(f"Run name: {full_run_name}")
     print(f"Logging to: {run_dir}")
     print(f"Active loggers: {[type(l).__name__ for l in loggers]}")
     

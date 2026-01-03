@@ -265,12 +265,16 @@ class DownstreamProbeCallback(Callback):
         print(f"\n[DownstreamProbe] Running probe at epoch {current_epoch}...")
         
         # Run imputation and evaluate
-        metrics = self._evaluate_imputation(pl_module)
+        metrics, viz_data = self._evaluate_imputation(pl_module)
         
         # Log metrics
         for name, value in metrics.items():
             pl_module.log(f"probe/{name}", value, on_step=False, on_epoch=True)
             print(f"  {name}: {value:.4f}")
+        
+        # Generate and log visualizations to MLflow
+        if viz_data is not None:
+            self._log_visualizations(trainer, current_epoch, viz_data)
     
     @torch.no_grad()
     def _evaluate_imputation(self, pl_module: L.LightningModule) -> Dict[str, float]:
@@ -409,7 +413,97 @@ class DownstreamProbeCallback(Callback):
             metrics.update(r2_metrics)
         
         pl_module.train()
-        return metrics
+        
+        # Prepare visualization data
+        viz_data = {
+            "data_norm": data.numpy(),      # [N, C, T] normalized original
+            "recon_norm": x_recon.numpy(),  # [N, C, T] backbone reconstruction
+            "labels": self._probe_data["labels"],
+            "mask_channels": self.mask_channels,
+        }
+        
+        return metrics, viz_data
+    
+    def _log_visualizations(
+        self,
+        trainer: L.Trainer,
+        epoch: int,
+        viz_data: Dict[str, Any],
+    ) -> None:
+        """Log visualizations to TensorBoard: embeddings (Projector) and distributions."""
+        from lightning.pytorch.loggers import TensorBoardLogger
+        
+        # Get TensorBoard logger from trainer
+        tb_logger = None
+        if hasattr(trainer, 'loggers'):
+            for logger in trainer.loggers:
+                if isinstance(logger, TensorBoardLogger):
+                    tb_logger = logger
+                    break
+        
+        if tb_logger is None:
+            print("[DownstreamProbe] TensorBoardLogger not found, skipping visualizations")
+            return
+        
+        writer = tb_logger.experiment  # This is SummaryWriter
+        
+        data_norm = viz_data["data_norm"]      # [N, C, T]
+        recon_norm = viz_data["recon_norm"]    # [N, C, T]
+        labels = viz_data["labels"]
+        mask_channels = viz_data["mask_channels"]
+        
+        N, C, T = data_norm.shape
+        
+        # Get ppm labels for metadata
+        ppm_values = np.array([l["ppm"] for l in labels])
+        
+        # Log embeddings for TensorBoard Projector (only every 10 epochs, skip epoch 0 due to sanity check duplicate)
+        if epoch > 0 and epoch % 10 == 0:
+            for ch in mask_channels:
+                if ch >= C:
+                    continue
+                
+                # Get channel data
+                orig_ch = data_norm[:, ch, :]   # [N, T]
+                recon_ch = recon_norm[:, ch, :] # [N, T]
+                
+                # Combine original and reconstructed for joint embedding
+                combined = np.vstack([orig_ch, recon_ch])  # [2N, T]
+                combined_tensor = torch.from_numpy(combined).float()
+                
+                # Create metadata for Projector (type and ppm)
+                metadata = []
+                metadata_header = ["type", "ppm"]
+                for i in range(N):
+                    metadata.append([f"orig", f"{ppm_values[i]:.1f}"])
+                for i in range(N):
+                    metadata.append([f"recon", f"{ppm_values[i]:.1f}"])
+                
+                # Log embedding to TensorBoard Projector
+                writer.add_embedding(
+                    combined_tensor,
+                    metadata=metadata,
+                    metadata_header=metadata_header,
+                    global_step=epoch,
+                    tag=f"probe/embedding_ch{ch}"
+                )
+        
+        # Log distributions (histograms) for masked channels
+        for ch in mask_channels:
+            if ch >= C:
+                continue
+            orig_ch = data_norm[:, ch, :].flatten()
+            recon_ch = recon_norm[:, ch, :].flatten()
+            
+            # Add histograms
+            writer.add_histogram(f"probe/dist_original_ch{ch}", orig_ch, global_step=epoch)
+            writer.add_histogram(f"probe/dist_recon_ch{ch}", recon_ch, global_step=epoch)
+            
+            # Add error distribution
+            error = recon_ch - orig_ch
+            writer.add_histogram(f"probe/dist_error_ch{ch}", error, global_step=epoch)
+        
+        print(f"  [Viz] Logged Embeddings/Distributions for masked channels {mask_channels}")
     
     @torch.no_grad()
     def _evaluate_downstream_r2_new(
