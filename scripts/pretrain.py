@@ -2,8 +2,14 @@
 """CLI script for e-nose pretraining.
 
 Usage:
-    # Basic pretraining with all datasets
+    # Basic pretraining with VQ-VAE (default)
     python scripts/pretrain.py
+    
+    # Train with MLP baseline
+    python scripts/pretrain.py --model mlp
+    
+    # Train with TCN baseline
+    python scripts/pretrain.py --model tcn
     
     # Custom datasets
     python scripts/pretrain.py --datasets twin_gas_sensor_arrays gas_sensors_for_home_activity_monitoring
@@ -12,7 +18,7 @@ Usage:
     python scripts/pretrain.py --accelerator gpu --precision 16-mixed
     
     # Resume from checkpoint
-    python scripts/pretrain.py --resume-from logs/checkpoints/enose_pretrain/last.ckpt
+    python scripts/pretrain.py --model tcn --resume-from logs/checkpoints/enose_pretrain/last.ckpt
 """
 import argparse
 import sys
@@ -21,11 +27,16 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from enose_uci_dataset.pretrain import create_trainer, EnoseVQVAE, EnosePretrainingDataModule
+from enose_uci_dataset.pretrain import create_trainer, EnoseVQVAE, EnosePretrainingDataModule, MLPAutoencoder, TCNAutoencoder
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="E-nose VQ-VAE Pretraining")
+    parser = argparse.ArgumentParser(description="E-nose Pretraining (VQ-VAE / MLP / TCN)")
+    
+    # Model selection
+    parser.add_argument("--model", type=str, default="vqvae",
+                        choices=["vqvae", "mlp", "tcn"],
+                        help="Model type: vqvae (default), mlp, or tcn")
     
     # "alcohol_qcm_sensor_dataset": AlcoholQCMSensor,
     # "gas_sensor_array_drift_dataset_at_different_concentrations": GasSensorArrayDrift,
@@ -159,32 +170,24 @@ def main():
     # Create or load model
     if args.resume_from:
         print(f"\nResuming from: {args.resume_from}")
-        model = EnoseVQVAE.load_from_checkpoint(args.resume_from)
+        if args.model == "vqvae":
+            model = EnoseVQVAE.load_from_checkpoint(args.resume_from)
+        elif args.model == "mlp":
+            model = MLPAutoencoder.load_from_checkpoint(args.resume_from)
+        elif args.model == "tcn":
+            model = TCNAutoencoder.load_from_checkpoint(args.resume_from)
     else:
-        print(f"\nCreating new model:")
+        print(f"\nCreating new {args.model.upper()} model:")
         print(f"  d_model: {args.d_model}")
-        print(f"  encoder_layers: {args.num_encoder_layers}")
-        print(f"  decoder_layers: {args.num_decoder_layers}")
-        print(f"  patch_size: {args.patch_size}")
-        print(f"  codebook_size: {args.num_embeddings}")
         print(f"  mask_ratio: {args.mask_ratio}")
         
-        model = EnoseVQVAE(
-            d_model=args.d_model,
-            nhead=8,
-            num_encoder_layers=args.num_encoder_layers,
-            num_decoder_layers=args.num_decoder_layers,
-            dim_feedforward=args.d_model * 4,
-            dropout=0.1,
-            patch_size=args.patch_size,
-            num_embeddings=args.num_embeddings,
-            commitment_cost=args.commitment_cost,
+        # Common kwargs for all models
+        common_kwargs = dict(
             max_channels=args.max_channels,
             learning_rate=args.learning_rate,
             mask_ratio=args.mask_ratio,
             lambda_visible=args.lambda_visible,
             lambda_masked=args.lambda_masked,
-            disable_vq=args.disable_vq,
             loss_type=args.loss_type,
             huber_delta=args.huber_delta,
             optimizer_type=args.optimizer,
@@ -193,6 +196,46 @@ def main():
             lr_T_mult=args.lr_T_mult,
             lr_min=args.lr_min,
         )
+        
+        if args.model == "vqvae":
+            print(f"  encoder_layers: {args.num_encoder_layers}")
+            print(f"  decoder_layers: {args.num_decoder_layers}")
+            print(f"  patch_size: {args.patch_size}")
+            print(f"  codebook_size: {args.num_embeddings}")
+            model = EnoseVQVAE(
+                d_model=args.d_model,
+                nhead=8,
+                num_encoder_layers=args.num_encoder_layers,
+                num_decoder_layers=args.num_decoder_layers,
+                dim_feedforward=args.d_model * 4,
+                dropout=0.1,
+                patch_size=args.patch_size,
+                num_embeddings=args.num_embeddings,
+                commitment_cost=args.commitment_cost,
+                disable_vq=args.disable_vq,
+                **common_kwargs,
+            )
+        elif args.model == "mlp":
+            print(f"  num_layers: {args.num_encoder_layers}")
+            print(f"  max_length: {args.max_length}")
+            model = MLPAutoencoder(
+                d_model=args.d_model,
+                num_layers=args.num_encoder_layers,
+                max_length=args.max_length,
+                dropout=0.1,
+                **common_kwargs,
+            )
+        elif args.model == "tcn":
+            print(f"  num_layers: {args.num_encoder_layers}")
+            print(f"  max_length: {args.max_length}")
+            model = TCNAutoencoder(
+                d_model=args.d_model,
+                num_layers=args.num_encoder_layers,
+                kernel_size=3,
+                max_length=args.max_length,
+                dropout=0.1,
+                **common_kwargs,
+            )
     
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())

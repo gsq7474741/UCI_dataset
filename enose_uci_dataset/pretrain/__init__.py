@@ -10,10 +10,15 @@ from .model import EnoseVQVAE
 from .datamodule import EnosePretrainingDataModule
 from .trainer import create_trainer
 from .downstream_probe import DownstreamProbeCallback
+from .baselines import MLPAutoencoder, TCNAutoencoder, create_baseline_model, BASELINE_MODELS
 
 __all__ = [
     "EnoseVQVAE",
     "EnosePretrainingDataModule", 
     "create_trainer",
     "DownstreamProbeCallback",
+    "MLPAutoencoder",
+    "TCNAutoencoder",
+    "create_baseline_model",
+    "BASELINE_MODELS",
 ]
