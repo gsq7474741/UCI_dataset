@@ -66,6 +66,28 @@ DATASET_COLLECTION_TYPE: Dict[str, str] = {
     "gas_sensor_array_drift_dataset_at_different_concentrations": "features",
 }
 
+# Dataset response type: resistance vs conductance
+# CRITICAL for correct interpretation: 
+#   - resistance: 值↑ = 浓度↓ (还原性气体)
+#   - conductance: 值↑ = 浓度↑ (还原性气体)
+DATASET_RESPONSE_TYPE: Dict[str, str] = {
+    # 电阻类 (Rs, 值大=浓度低)
+    "twin_gas_sensor_arrays": "resistance",                    # Rs (KOhm)
+    "gas_sensor_array_temperature_modulation": "resistance",   # Rs (MOhm)
+    "gas_sensors_for_home_activity_monitoring": "resistance",  # Rs (KOhm)
+    "gas_sensor_array_under_flow_modulation": "resistance",    # dR (resistance change)
+    # 电导类 (S/G, 值大=浓度高)
+    "gas_sensor_array_under_dynamic_gas_mixtures": "conductance",  # S_i, 需 Rs=40/S 转换
+    "gas_sensor_array_exposed_to_turbulent_gas_mixtures": "conductance",  # ADC, 需 Rs=10*(3110-A)/A
+    # 比值类 (Rs/R0)
+    "smellnet_pure": "resistance_ratio",       # Rs/R0, Grove V2
+    "smellnet_mixture": "resistance_ratio",    # Rs/R0, Grove V2
+    "gas_sensor_array_low_concentration": "resistance_ratio",  # 待确认
+    # 特征向量 (非原始响应)
+    "alcohol_qcm_sensor_dataset": "features",
+    "gas_sensor_array_drift_dataset_at_different_concentrations": "features",
+}
+
 
 # =============================================================================
 # 2. Universal Sensor Space (S_all)
@@ -475,6 +497,7 @@ __all__ = [
     # Mappings
     "DATASET_SAMPLE_RATES",
     "DATASET_COLLECTION_TYPE",
+    "DATASET_RESPONSE_TYPE",
     "DATASET_CHANNEL_TO_GLOBAL",
     "get_global_channel_mapping",
 ]

@@ -65,7 +65,7 @@ class DatasetInfo:
     sensors: SensorConfig = SensorConfig()
     time_series: Optional[TimeSeriesConfig] = None
     extract: ExtractConfig = ExtractConfig()
-
+    paper_link: Optional[str] = None
 
 # =============================================================================
 # Channel configurations for each dataset (gathered from UCI pages)
@@ -259,6 +259,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         sensors=SensorConfig(type="MOX", count=10, channels=_LOW_CONC_CHANNELS, manufacturer="Mixed"),
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=1),
         extract=ExtractConfig(type="standard"),
+        paper_link="https://doi.org/10.1109/TIM.2023.3251416",
     ),
     "gas_sensor_array_temperature_modulation": DatasetInfo(
         name="gas_sensor_array_temperature_modulation",

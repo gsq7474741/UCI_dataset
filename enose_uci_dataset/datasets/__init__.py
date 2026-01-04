@@ -13,7 +13,8 @@ from ._global import (
     SensorModel, SENSOR_MODELS, SENSOR_NAME_TO_ID, get_sensor_id, get_sensor_model,
     TargetGas, GAS_NAME_TO_ENUM,
     TaskType, TaskDefinition, TASKS,
-    DATASET_SAMPLE_RATES, DATASET_COLLECTION_TYPE, DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
+    DATASET_SAMPLE_RATES, DATASET_COLLECTION_TYPE, DATASET_RESPONSE_TYPE,
+    DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
 )
 from .combined import CombinedEnoseDataset, PretrainingDataset
 from .alcohol_qcm_sensor import AlcoholQCMSensor
@@ -98,6 +99,7 @@ __all__ = [
     "TASKS",
     "DATASET_SAMPLE_RATES",
     "DATASET_COLLECTION_TYPE",
+    "DATASET_RESPONSE_TYPE",
     "DATASET_CHANNEL_TO_GLOBAL",
     "get_global_channel_mapping",
 ]
