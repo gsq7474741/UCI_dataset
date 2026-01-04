@@ -165,6 +165,21 @@ class CombinedEnoseDataset(_TorchDataset):
         ds = self._datasets[ds_name]
         return ds.get_normalized_sample(local_idx)
     
+    def get_sample(self, index: int) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Get raw (unnormalized) sample from the combined dataset.
+        
+        Used when backbone models handle normalization internally via BatchNorm.
+        
+        Args:
+            index: Global sample index
+            
+        Returns:
+            Tuple of (data, metadata) where data is raw/unnormalized
+        """
+        ds_name, local_idx = self._sample_map[index]
+        ds = self._datasets[ds_name]
+        return ds.get_sample(local_idx)
+    
     def get_sample_with_mask(
         self,
         index: int,

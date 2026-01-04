@@ -131,13 +131,11 @@ class DownstreamProbeCallback(Callback):
         n_samples = min(self.num_probe_samples, len(self._twin_gas))
         indices = np.random.choice(len(self._twin_gas), n_samples, replace=False)
         
-        probe_data = []       # Normalized for backbone input
-        probe_data_raw = []   # Raw for downstream model
-        probe_stats = []      # mean/std for denormalization
+        probe_data = []       # Raw data for both backbone and downstream (backbone normalizes internally)
         probe_labels = []
         
         for idx in indices:
-            # Get raw sample (not normalized) - mimic TCN data loading
+            # Get raw sample (not normalized)
             rec = self._twin_gas._samples[idx]
             df, target = self._twin_gas._load_sample(rec)
             
@@ -167,17 +165,8 @@ class DownstreamProbeCallback(Callback):
             # Step 3: Transpose to [C, T]
             data_raw = data_raw.T.astype(np.float32)  # [C, T]
             
-            # Step 4: Per-channel z-score normalization (MUST match backbone training!)
-            # Save mean/std for later denormalization of backbone output
-            mean = data_raw.mean(axis=1, keepdims=True)  # [C, 1]
-            std = data_raw.std(axis=1, keepdims=True)    # [C, 1]
-            std = np.where(std < 1e-6, 1.0, std)
-            data_norm = (data_raw - mean) / std
-            
-            # Store both: normalized for backbone, raw + stats for downstream
-            probe_data.append(data_norm)
-            probe_data_raw.append(data_raw)
-            probe_stats.append({"mean": mean, "std": std})
+            # No external normalization - backbone handles it internally via BN
+            probe_data.append(data_raw)
             
             # Get labels
             if isinstance(target, dict):
@@ -189,9 +178,7 @@ class DownstreamProbeCallback(Callback):
                 probe_labels.append({"gas": 0, "ppm": 0.0})
         
         self._probe_data = {
-            "data": np.stack(probe_data, axis=0),      # [N, C, T] normalized for backbone
-            "data_raw": np.stack(probe_data_raw, axis=0),  # [N, C, T] raw for downstream
-            "stats": probe_stats,                       # List of {"mean", "std"} for denorm
+            "data": np.stack(probe_data, axis=0),      # [N, C, T] raw data for both backbone and downstream
             "labels": probe_labels,
             "channel_models": self._twin_gas.channel_models,
             "sample_rate": self._twin_gas.sample_rate_hz,
@@ -414,10 +401,10 @@ class DownstreamProbeCallback(Callback):
         
         pl_module.train()
         
-        # Prepare visualization data
+        # Prepare visualization data (now in raw scale since backbone handles normalization internally)
         viz_data = {
-            "data_norm": data.numpy(),      # [N, C, T] normalized original
-            "recon_norm": x_recon.numpy(),  # [N, C, T] backbone reconstruction
+            "data_raw": data.numpy(),       # [N, C, T] raw original data
+            "recon_raw": x_recon.numpy(),   # [N, C, T] backbone reconstruction (raw scale)
             "labels": self._probe_data["labels"],
             "mask_channels": self.mask_channels,
         }
@@ -447,12 +434,12 @@ class DownstreamProbeCallback(Callback):
         
         writer = tb_logger.experiment  # This is SummaryWriter
         
-        data_norm = viz_data["data_norm"]      # [N, C, T]
-        recon_norm = viz_data["recon_norm"]    # [N, C, T]
+        data_raw = viz_data["data_raw"]        # [N, C, T]
+        recon_raw = viz_data["recon_raw"]      # [N, C, T]
         labels = viz_data["labels"]
         mask_channels = viz_data["mask_channels"]
         
-        N, C, T = data_norm.shape
+        N, C, T = data_raw.shape
         
         # Get ppm labels for metadata
         ppm_values = np.array([l["ppm"] for l in labels])
@@ -464,8 +451,8 @@ class DownstreamProbeCallback(Callback):
                     continue
                 
                 # Get channel data
-                orig_ch = data_norm[:, ch, :]   # [N, T]
-                recon_ch = recon_norm[:, ch, :] # [N, T]
+                orig_ch = data_raw[:, ch, :]   # [N, T]
+                recon_ch = recon_raw[:, ch, :] # [N, T]
                 
                 # Combine original and reconstructed for joint embedding
                 combined = np.vstack([orig_ch, recon_ch])  # [2N, T]
@@ -492,8 +479,8 @@ class DownstreamProbeCallback(Callback):
         for ch in mask_channels:
             if ch >= C:
                 continue
-            orig_ch = data_norm[:, ch, :].flatten()
-            recon_ch = recon_norm[:, ch, :].flatten()
+            orig_ch = data_raw[:, ch, :].flatten()
+            recon_ch = recon_raw[:, ch, :].flatten()
             
             # Add histograms
             writer.add_histogram(f"probe/dist_original_ch{ch}", orig_ch, global_step=epoch)
@@ -508,33 +495,23 @@ class DownstreamProbeCallback(Callback):
     @torch.no_grad()
     def _evaluate_downstream_r2_new(
         self, 
-        data_norm: torch.Tensor, 
-        recon_norm: torch.Tensor,
+        data_raw: torch.Tensor, 
+        recon_raw: torch.Tensor,
     ) -> Dict[str, float]:
         """Evaluate R² using new downstream model (MLPRegressor).
         
         Args:
-            data_norm: [N, C, T] normalized data (for MSE, same scale as backbone)
-            recon_norm: [N, C, T] backbone reconstruction in normalized space
+            data_raw: [N, C, T] original raw data
+            recon_raw: [N, C, T] backbone reconstruction (already in raw scale via internal BN)
             
         Returns:
             Dictionary with R² metrics
         """
         device = next(self._downstream_model.parameters()).device
-        N, C_recon, T_recon = recon_norm.shape
+        N, C_recon, T_recon = recon_raw.shape
         
-        # Get RAW data for downstream model (downstream expects raw scale)
-        # Match the channel count to what backbone outputs
-        data_raw_full = torch.tensor(self._probe_data["data_raw"], dtype=torch.float32)
-        data_raw = data_raw_full[:, :C_recon, :T_recon]  # Match shape
-        stats = self._probe_data["stats"]  # List of {"mean", "std"} per sample
-        
-        # Denormalize backbone output back to raw scale: x_raw = x_norm * std + mean
-        recon_raw = torch.zeros_like(recon_norm)
-        for i in range(N):
-            mean = torch.tensor(stats[i]["mean"][:C_recon], dtype=torch.float32)  # [C_recon, 1]
-            std = torch.tensor(stats[i]["std"][:C_recon], dtype=torch.float32)    # [C_recon, 1]
-            recon_raw[i] = recon_norm[i] * std + mean
+        # Both data_raw and recon_raw are already in raw scale
+        # (backbone handles normalization/denormalization internally)
         
         # Prepare data variants (all in RAW scale for downstream)
         data_with_imputation = data_raw.clone()

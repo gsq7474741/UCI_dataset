@@ -105,8 +105,12 @@ class PretrainingCollator:
         }
 
 
-class NormalizedDatasetWrapper(Dataset):
-    """Wrapper that uses get_normalized_sample interface."""
+class RawDatasetWrapper(Dataset):
+    """Wrapper that returns raw (unnormalized) samples.
+    
+    Backbone models now handle normalization internally via BatchNorm,
+    so we provide raw data instead of pre-normalized data.
+    """
     
     def __init__(self, dataset):
         self.dataset = dataset
@@ -115,7 +119,8 @@ class NormalizedDatasetWrapper(Dataset):
         return len(self.dataset)
     
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        data, meta = self.dataset.get_normalized_sample(idx)
+        # Use get_sample (raw) instead of get_normalized_sample
+        data, meta = self.dataset.get_sample(idx)
         return {"data": data, "meta": meta}
 
 
@@ -176,8 +181,8 @@ class EnosePretrainingDataModule(L.LightningDataModule):
                 download=False,
             )
             
-            # Wrap with normalized interface
-            wrapped = NormalizedDatasetWrapper(self.combined_dataset)
+            # Wrap with raw data interface (backbone handles normalization internally)
+            wrapped = RawDatasetWrapper(self.combined_dataset)
             
             # Split into train/val
             n_samples = len(wrapped)

@@ -15,7 +15,15 @@ from torchmetrics import MeanMetric, MinMetric
 
 
 class BaseAutoencoder(L.LightningModule):
-    """Base class for autoencoder models with shared training logic."""
+    """Base class for autoencoder models with shared training logic.
+    
+    Data flow:
+    1. Input raw data -> InputBN -> normalized data (internal processing)
+    2. Encoder -> latent -> Decoder -> reconstructed normalized data
+    3. Inverse BN -> reconstructed raw data (output)
+    
+    This allows the model to handle raw sensor data directly without external normalization.
+    """
     
     def __init__(
         self,
@@ -36,6 +44,10 @@ class BaseAutoencoder(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         
+        # Input normalization (BatchNorm without learnable params for reversibility)
+        # affine=False means no gamma/beta, making inverse BN simple: x = y * std + mean
+        self.input_bn = nn.BatchNorm1d(max_channels, affine=False, track_running_stats=True)
+        
         # Metrics
         self.train_loss = MeanMetric()
         self.train_recon_loss = MeanMetric()
@@ -45,6 +57,40 @@ class BaseAutoencoder(L.LightningModule):
         self.val_recon_visible = MeanMetric()
         self.val_recon_masked = MeanMetric()
         self.val_best_loss = MinMetric()
+    
+    def normalize_input(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize input using BatchNorm.
+        
+        Args:
+            x: [B, C, T] raw input data
+            
+        Returns:
+            Normalized data [B, C, T]
+        """
+        return self.input_bn(x)
+    
+    def denormalize_output(self, x_norm: torch.Tensor) -> torch.Tensor:
+        """Denormalize output back to raw scale using BN running stats.
+        
+        Since affine=False, the inverse is simply: x = x_norm * std + mean
+        
+        Args:
+            x_norm: [B, C, T] normalized reconstruction
+            
+        Returns:
+            Denormalized data [B, C, T] in original raw scale
+        """
+        # Get running stats from BN layer
+        mean = self.input_bn.running_mean  # [C]
+        var = self.input_bn.running_var    # [C]
+        std = torch.sqrt(var + self.input_bn.eps)  # [C]
+        
+        # Reshape for broadcasting: [C] -> [1, C, 1]
+        mean = mean.view(1, -1, 1)
+        std = std.view(1, -1, 1)
+        
+        # Inverse normalization: x = x_norm * std + mean
+        return x_norm * std + mean
     
     def _apply_random_mask(
         self,
@@ -114,36 +160,49 @@ class BaseAutoencoder(L.LightningModule):
         batch: Dict[str, Any],
         stage: str = "train",
     ) -> Dict[str, torch.Tensor]:
-        x = batch["data"]  # [B, C, T]
+        x_raw = batch["data"]  # [B, C, T] - raw scale
         valid_channel_mask = batch.get("channel_mask")
         
-        x_masked, train_mask = self._apply_random_mask(x, valid_channel_mask)
+        # Apply mask to raw data
+        x_masked, train_mask = self._apply_random_mask(x_raw, valid_channel_mask)
         
         # Forward pass - subclass implements this (same signature as EnoseVQVAE)
+        # Input is raw, output includes both raw and normalized reconstruction
         sensor_indices = batch.get("sensor_indices")
         sample_rate = batch.get("sample_rate")
         outputs = self(x_masked, valid_channel_mask, sensor_indices, sample_rate, training_mask=train_mask)
-        x_recon = outputs["x_recon"]
+        x_recon_norm = outputs["x_recon_norm"]  # Use normalized output for loss
         
-        train_mask_expanded = train_mask.unsqueeze(-1).expand_as(x)
+        # Normalize target for loss computation (same as internal BN)
+        # Note: We need to normalize the FULL data (not masked) to get the target
+        B, C, T = x_raw.shape
+        if C < self.hparams.max_channels:
+            x_padded = torch.zeros(B, self.hparams.max_channels, T, device=x_raw.device, dtype=x_raw.dtype)
+            x_padded[:, :C, :] = x_raw
+            x_norm = self.normalize_input(x_padded)[:, :C, :]
+        else:
+            x_norm = self.normalize_input(x_raw)
+        
+        train_mask_expanded = train_mask.unsqueeze(-1).expand_as(x_raw)
         
         if valid_channel_mask is not None:
-            valid_expanded = valid_channel_mask.unsqueeze(-1).expand_as(x)
+            valid_expanded = valid_channel_mask.unsqueeze(-1).expand_as(x_raw)
             visible_mask = train_mask_expanded & valid_expanded
             masked_mask = (~train_mask_expanded) & valid_expanded
         else:
             visible_mask = train_mask_expanded
             masked_mask = ~train_mask_expanded
         
+        # Compute loss in NORMALIZED space
         if visible_mask.any():
-            loss_visible = self._compute_recon_loss(x_recon[visible_mask], x[visible_mask])
+            loss_visible = self._compute_recon_loss(x_recon_norm[visible_mask], x_norm[visible_mask])
         else:
-            loss_visible = torch.tensor(0.0, device=x.device)
+            loss_visible = torch.tensor(0.0, device=x_raw.device)
         
         if masked_mask.any():
-            loss_masked = self._compute_recon_loss(x_recon[masked_mask], x[masked_mask])
+            loss_masked = self._compute_recon_loss(x_recon_norm[masked_mask], x_norm[masked_mask])
         else:
-            loss_masked = torch.tensor(0.0, device=x.device)
+            loss_masked = torch.tensor(0.0, device=x_raw.device)
         
         recon_loss = (self.hparams.lambda_visible * loss_visible + 
                       self.hparams.lambda_masked * loss_masked)
@@ -308,26 +367,39 @@ class MLPAutoencoder(BaseAutoencoder):
         sensor_indices: Optional[torch.Tensor] = None,
         sample_rate: Optional[torch.Tensor] = None,
         training_mask: Optional[torch.Tensor] = None,
+        return_raw: bool = True,
     ) -> Dict[str, torch.Tensor]:
         """
         Args:
-            x: [B, C, T] input time series
+            x: [B, C, T] input time series (RAW scale, not normalized)
             channel_mask: [B, C] padding mask (True = valid)
             sensor_indices: [B, C] sensor model indices (unused)
             sample_rate: [B] sample rate in Hz (unused)
             training_mask: [B, C] training mask (True = visible)
+            return_raw: If True, denormalize output to raw scale
             
         Returns:
-            Dict with 'x_recon' key for compatibility with EnoseVQVAE
+            Dict with 'x_recon' (raw scale) and 'x_recon_norm' (normalized)
         """
         B, C, T = x.shape
+        orig_T = T
+        orig_C = C
+        
+        # Pad channels to max_channels BEFORE normalization
+        if C < self.max_channels:
+            x_padded = torch.zeros(B, self.max_channels, T, device=x.device, dtype=x.dtype)
+            x_padded[:, :C, :] = x
+            x = x_padded
         
         # Pad time to max_length
         if T < self.max_length:
             x = F.pad(x, (0, self.max_length - T), value=0)
         elif T > self.max_length:
             x = x[:, :, :self.max_length]
-            T = self.max_length
+            orig_T = self.max_length
+        
+        # Input normalization (internal BN)
+        x = self.normalize_input(x)
         
         # Per-channel encoding: [B, C, T] -> [B, C, d_model]
         z = self.channel_encoder(x)
@@ -336,12 +408,19 @@ class MLPAutoencoder(BaseAutoencoder):
         z = self.channel_mixing(z)
         
         # Per-channel decoding: [B, C, d_model] -> [B, C, T]
-        x_recon = self.channel_decoder(z)
+        x_recon_norm = self.channel_decoder(z)
+        
+        # Output denormalization (inverse BN) to raw scale
+        x_recon = self.denormalize_output(x_recon_norm)
         
         # Crop to original size
-        x_recon = x_recon[:, :, :T]
+        x_recon = x_recon[:, :orig_C, :orig_T]
+        x_recon_norm = x_recon_norm[:, :orig_C, :orig_T]
         
-        return {"x_recon": x_recon}
+        return {
+            "x_recon": x_recon,           # Raw scale (for downstream tasks)
+            "x_recon_norm": x_recon_norm,  # Normalized scale (for loss computation)
+        }
 
 
 class TemporalBlock(nn.Module):
@@ -463,22 +542,25 @@ class TCNAutoencoder(BaseAutoencoder):
         sensor_indices: Optional[torch.Tensor] = None,
         sample_rate: Optional[torch.Tensor] = None,
         training_mask: Optional[torch.Tensor] = None,
+        return_raw: bool = True,
     ) -> Dict[str, torch.Tensor]:
         """
         Args:
-            x: [B, C, T] input time series
+            x: [B, C, T] input time series (RAW scale, not normalized)
             channel_mask: [B, C] padding mask (True = valid)
             sensor_indices: [B, C] sensor model indices (unused, for API compatibility)
             sample_rate: [B] sample rate in Hz (unused, for API compatibility)
             training_mask: [B, C] training mask (True = visible)
+            return_raw: If True, denormalize output to raw scale; if False, return normalized
             
         Returns:
-            Dict with 'x_recon' key for compatibility with EnoseVQVAE
+            Dict with 'x_recon' (raw scale) and optionally 'x_recon_norm' (normalized)
         """
         B, C, T = x.shape
         orig_T = T
+        orig_C = C
         
-        # Pad channels to max_channels
+        # Pad channels to max_channels BEFORE normalization
         if C < self.max_channels:
             x_padded = torch.zeros(B, self.max_channels, T, device=x.device, dtype=x.dtype)
             x_padded[:, :C, :] = x
@@ -493,6 +575,9 @@ class TCNAutoencoder(BaseAutoencoder):
             x = x[:, :, :self.max_length]
             orig_T = self.max_length
         
+        # Input normalization (internal BN)
+        x = self.normalize_input(x)
+        
         # Encode
         z = self.encoder(x)
         
@@ -500,15 +585,22 @@ class TCNAutoencoder(BaseAutoencoder):
         z = self.bottleneck(z)
         
         # Decode
-        x_recon = self.decoder(z)
+        x_recon_norm = self.decoder(z)
         
         # Output projection
-        x_recon = self.output_proj(x_recon)
+        x_recon_norm = self.output_proj(x_recon_norm)
+        
+        # Output denormalization (inverse BN) to raw scale
+        x_recon = self.denormalize_output(x_recon_norm)
         
         # Crop to original size
-        x_recon = x_recon[:, :C, :orig_T]
+        x_recon = x_recon[:, :orig_C, :orig_T]
+        x_recon_norm = x_recon_norm[:, :orig_C, :orig_T]
         
-        return {"x_recon": x_recon}
+        return {
+            "x_recon": x_recon,           # Raw scale (for downstream tasks)
+            "x_recon_norm": x_recon_norm,  # Normalized scale (for loss computation)
+        }
 
 
 # Model registry for easy access

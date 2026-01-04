@@ -56,7 +56,7 @@ COMMON_ARGS=(
   # 探测 (训练时评估下游任务性能)
   --enable-probe
   --probe-every-n-epochs 1
-  --probe-mask-channels 0
+  --probe-mask-channels 0 1 2 3
 )
 
 # ============================================================

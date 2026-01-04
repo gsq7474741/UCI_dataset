@@ -276,6 +276,65 @@ class BaseEnoseDataset(DatasetWithTransforms):
         }
         
         return data_array, metadata
+    
+    def get_sample(self, index: int) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Get a raw (unnormalized) sample for models that handle normalization internally.
+        
+        Same as get_normalized_sample but WITHOUT per-channel z-score normalization.
+        Used when backbone models handle normalization internally via BatchNorm.
+        
+        Args:
+            index: Sample index
+            
+        Returns:
+            Tuple of (data, metadata) where:
+            - data: np.ndarray of shape [num_channels, time_steps] (raw, unnormalized)
+            - metadata: Dict with sample metadata
+        """
+        rec = self._samples[index]
+        data, target = self._load_sample(rec)
+        
+        # Convert to numpy array in [C, T] format with float32 dtype
+        if hasattr(data, 'values'):  # DataFrame
+            if hasattr(data, 'select_dtypes'):
+                numeric_data = data.select_dtypes(include=[np.number])
+                data_array = numeric_data.values.astype(np.float32)
+            else:
+                data_array = data.values
+            if data_array.ndim == 2:
+                data_array = data_array.T  # [T, C] -> [C, T]
+        elif isinstance(data, np.ndarray):
+            data_array = data
+            if data_array.ndim == 1:
+                data_array = data_array.reshape(1, -1)
+            elif data_array.ndim == 2:
+                if data_array.shape[0] > data_array.shape[1]:
+                    data_array = data_array.T
+        else:
+            data_array = np.array(data)
+            if data_array.ndim == 1:
+                data_array = data_array.reshape(1, -1)
+        
+        # Ensure float32 dtype
+        if data_array.dtype == np.object_ or not np.issubdtype(data_array.dtype, np.floating):
+            data_array = data_array.astype(np.float32)
+        
+        # NO normalization - backbone handles it internally via BatchNorm
+        # Just cleanup for FP16 compatibility
+        data_array = np.nan_to_num(data_array, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        metadata = {
+            "dataset": self.name,
+            "sample_id": rec.sample_id,
+            "channel_models": self.channel_models,
+            "channel_targets": [list(ch.target_gases) for ch in self.channels],
+            "sample_rate_hz": self.sample_rate_hz,
+            "manufacturer": self.manufacturer,
+            "target": target,
+            "record_meta": dict(rec.meta),
+        }
+        
+        return data_array, metadata
 
     def get_sample_with_mask(
         self,
