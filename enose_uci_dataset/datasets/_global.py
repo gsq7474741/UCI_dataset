@@ -410,7 +410,25 @@ DATASET_CHANNEL_TO_GLOBAL: Dict[str, List[int]] = {
     "gas_sensor_array_drift_dataset_at_different_concentrations": [
         get_sensor_id("TGS2600")] * 4 + [get_sensor_id("TGS2602")] * 4 + 
         [get_sensor_id("TGS2610")] * 4 + [get_sensor_id("TGS2620")] * 4,
-    "gas_sensor_array_under_flow_modulation": [get_sensor_id("MOX")] * 16,
+    # Flow modulation: 5 TGS models, 2 voltages (5V/3.3V), per Table 1 in paper
+    "gas_sensor_array_under_flow_modulation": [
+        get_sensor_id("TGS2610"),  # R1: 5.0V, 21kΩ
+        get_sensor_id("TGS2610"),  # R2: 5.0V, 21kΩ
+        get_sensor_id("TGS2602"),  # R3: 5.0V, 21kΩ
+        get_sensor_id("TGS2600"),  # R4: 5.0V, 21kΩ
+        get_sensor_id("TGS2610"),  # R5: 5.0V, 21kΩ
+        get_sensor_id("TGS2611"),  # R6: 5.0V, 21kΩ
+        get_sensor_id("TGS2610"),  # R7: 5.0V, 21kΩ
+        get_sensor_id("TGS2620"),  # R8: 5.0V, 21kΩ
+        get_sensor_id("TGS2610"),  # R9: 3.3V, 82kΩ
+        get_sensor_id("TGS2620"),  # R10: 3.3V, 82kΩ
+        get_sensor_id("TGS2602"),  # R11: 3.3V, 82kΩ
+        get_sensor_id("TGS2611"),  # R12: 3.3V, 82kΩ
+        get_sensor_id("TGS2610"),  # R13: 3.3V, 82kΩ
+        get_sensor_id("TGS2610"),  # R14: 3.3V, 82kΩ
+        get_sensor_id("TGS2610"),  # R15: 3.3V, 82kΩ
+        get_sensor_id("TGS2600"),  # R16: 3.3V, 82kΩ
+    ],
 }
 
 

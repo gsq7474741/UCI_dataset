@@ -165,10 +165,25 @@ _DRIFT_CHANNELS = tuple(
     for i in range(16)
 )
 
-# Gas Sensor Array under Flow Modulation: 16 sensors (specific models not documented)
-_FLOW_MODULATION_CHANNELS = tuple(
-    ChannelConfig(i, "MOX", (), "dR", None, f"Sensor {i+1}")
-    for i in range(16)
+# Gas Sensor Array under Flow Modulation: 16 sensors (per paper Table 1)
+# 5 TGS models at 2 operating voltages (5.0V/3.3V) with different load resistors (21kΩ/82kΩ)
+_FLOW_MODULATION_CHANNELS = (
+    ChannelConfig(0, "TGS2610", ("Propane",), "dR", 5.0, "R1: 21kΩ load"),
+    ChannelConfig(1, "TGS2610", ("Propane",), "dR", 5.0, "R2: 21kΩ load"),
+    ChannelConfig(2, "TGS2602", ("Ammonia", "H2S", "VOC"), "dR", 5.0, "R3: 21kΩ load"),
+    ChannelConfig(3, "TGS2600", ("Hydrogen", "CO"), "dR", 5.0, "R4: 21kΩ load"),
+    ChannelConfig(4, "TGS2610", ("Propane",), "dR", 5.0, "R5: 21kΩ load"),
+    ChannelConfig(5, "TGS2611", ("Methane",), "dR", 5.0, "R6: 21kΩ load"),
+    ChannelConfig(6, "TGS2610", ("Propane",), "dR", 5.0, "R7: 21kΩ load"),
+    ChannelConfig(7, "TGS2620", ("Alcohol", "VOC"), "dR", 5.0, "R8: 21kΩ load"),
+    ChannelConfig(8, "TGS2610", ("Propane",), "dR", 3.3, "R9: 82kΩ load"),
+    ChannelConfig(9, "TGS2620", ("Alcohol", "VOC"), "dR", 3.3, "R10: 82kΩ load"),
+    ChannelConfig(10, "TGS2602", ("Ammonia", "H2S", "VOC"), "dR", 3.3, "R11: 82kΩ load"),
+    ChannelConfig(11, "TGS2611", ("Methane",), "dR", 3.3, "R12: 82kΩ load"),
+    ChannelConfig(12, "TGS2610", ("Propane",), "dR", 3.3, "R13: 82kΩ load"),
+    ChannelConfig(13, "TGS2610", ("Propane",), "dR", 3.3, "R14: 82kΩ load"),
+    ChannelConfig(14, "TGS2610", ("Propane",), "dR", 3.3, "R15: 82kΩ load"),
+    ChannelConfig(15, "TGS2600", ("Hydrogen", "CO"), "dR", 3.3, "R16: 82kΩ load"),
 )
 
 # Alcohol QCM Sensor: 5 QCM sensors with 2 channels each
