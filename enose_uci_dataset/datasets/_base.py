@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from scipy import signal
 
 try:
     from torch.utils.data import Dataset as _TorchDataset  # type: ignore
@@ -381,6 +382,174 @@ class BaseEnoseDataset(DatasetWithTransforms):
         metadata["masked_channels"] = np.where(~mask)[0].tolist()
         
         return masked_data, mask, metadata
+
+    @staticmethod
+    def resample_temporal(
+        data: np.ndarray,
+        src_rate: int,
+        dst_rate: int,
+        method: str = "polyphase",
+    ) -> np.ndarray:
+        """Resample time series data from source to destination sampling rate.
+        
+        Implements temporal resampling as part of standardization transformation F:
+            T̂_i = floor(T_i × (f_std / f_i))
+        
+        Args:
+            data: Input array of shape [C, T] (channels × time steps)
+            src_rate: Source sampling rate in Hz
+            dst_rate: Destination sampling rate in Hz
+            method: Resampling method ('polyphase', 'fft', 'linear')
+                - 'polyphase': scipy.signal.resample_poly (best quality, default)
+                - 'fft': scipy.signal.resample (frequency domain)
+                - 'linear': numpy linear interpolation (fastest)
+        
+        Returns:
+            Resampled array of shape [C, T̂] where T̂ = floor(T × dst_rate / src_rate)
+        """
+        if src_rate == dst_rate:
+            return data
+        
+        if src_rate <= 0 or dst_rate <= 0:
+            return data
+        
+        C, T = data.shape
+        
+        # Calculate target length
+        T_new = int(T * dst_rate / src_rate)
+        if T_new <= 0:
+            T_new = 1
+        
+        if method == "polyphase":
+            # Polyphase resampling (best quality for integer ratios)
+            from math import gcd
+            g = gcd(src_rate, dst_rate)
+            up = dst_rate // g
+            down = src_rate // g
+            # resample_poly applies along axis=-1 by default
+            resampled = signal.resample_poly(data, up, down, axis=1)
+        elif method == "fft":
+            # FFT-based resampling
+            resampled = signal.resample(data, T_new, axis=1)
+        elif method == "linear":
+            # Linear interpolation (fastest)
+            x_old = np.linspace(0, 1, T)
+            x_new = np.linspace(0, 1, T_new)
+            resampled = np.zeros((C, T_new), dtype=data.dtype)
+            for c in range(C):
+                resampled[c] = np.interp(x_new, x_old, data[c])
+        else:
+            raise ValueError(f"Unknown resampling method: {method}")
+        
+        return resampled.astype(data.dtype)
+
+    def get_standardized_sample(
+        self,
+        index: int,
+        target_rate: Optional[int] = None,
+        resample_method: str = "polyphase",
+        normalize: bool = True,
+    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Get a sample standardized to global reference space Ω_global.
+        
+        This method performs the standardization transformation F(d_i | Ω_global):
+        1. Temporal resampling: X_i → X̂_i at unified rate f_std
+        2. Per-channel z-score normalization (optional)
+        3. Global sensor index mapping in metadata
+        
+        Args:
+            index: Sample index
+            target_rate: Target sampling rate in Hz. If None, uses F_STD from _global.py
+            resample_method: Resampling algorithm ('polyphase', 'fft', 'linear')
+            normalize: Whether to apply per-channel z-score normalization
+        
+        Returns:
+            Tuple of (data, metadata) where:
+            - data: np.ndarray [C, T̂] resampled to target_rate
+            - metadata: Dict with standardization info including:
+                - original_rate: Original sampling rate
+                - target_rate: Target sampling rate after resampling
+                - original_length: Original time steps T_i
+                - resampled_length: New time steps T̂_i
+                - global_sensor_ids: Global sensor indices from S_all
+        """
+        from ._global import F_STD, get_sensor_id, get_global_channel_mapping
+        
+        if target_rate is None:
+            target_rate = F_STD
+        
+        # Get raw sample
+        rec = self._samples[index]
+        data, target = self._load_sample(rec)
+        
+        # Convert to [C, T] format
+        if hasattr(data, 'values'):  # DataFrame
+            if hasattr(data, 'select_dtypes'):
+                numeric_data = data.select_dtypes(include=[np.number])
+                data_array = numeric_data.values.astype(np.float32)
+            else:
+                data_array = data.values.astype(np.float32)
+            if data_array.ndim == 2:
+                data_array = data_array.T  # [T, C] -> [C, T]
+        elif isinstance(data, np.ndarray):
+            data_array = data.astype(np.float32)
+            if data_array.ndim == 1:
+                data_array = data_array.reshape(1, -1)
+            elif data_array.ndim == 2 and data_array.shape[0] > data_array.shape[1]:
+                data_array = data_array.T
+        else:
+            data_array = np.array(data, dtype=np.float32)
+            if data_array.ndim == 1:
+                data_array = data_array.reshape(1, -1)
+        
+        original_length = data_array.shape[1]
+        original_rate = self.sample_rate_hz
+        
+        # Step 1: Temporal resampling
+        if original_rate is not None and original_rate != target_rate:
+            data_array = self.resample_temporal(
+                data_array, original_rate, target_rate, method=resample_method
+            )
+        
+        resampled_length = data_array.shape[1]
+        
+        # Step 2: Per-channel normalization (optional)
+        if normalize:
+            mean = np.nanmean(data_array, axis=1, keepdims=True)
+            std = np.nanstd(data_array, axis=1, keepdims=True)
+            std = np.where(std > 1e-6, std, 1.0)
+            mean = np.nan_to_num(mean, nan=0.0)
+            data_array = (data_array - mean) / std
+        
+        # Cleanup for numerical stability
+        data_array = np.nan_to_num(data_array, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Step 3: Build metadata with global mappings
+        # Get global sensor indices
+        global_mapping = get_global_channel_mapping(self.name)
+        if not global_mapping:
+            # Fallback: map each channel model to global ID
+            global_mapping = [get_sensor_id(m) for m in self.channel_models]
+        
+        metadata = {
+            "dataset": self.name,
+            "sample_id": rec.sample_id,
+            # Original info
+            "channel_models": self.channel_models,
+            "channel_targets": [list(ch.target_gases) for ch in self.channels],
+            "manufacturer": self.manufacturer,
+            "target": target,
+            "record_meta": dict(rec.meta),
+            # Standardization info
+            "original_rate": original_rate,
+            "target_rate": target_rate,
+            "original_length": original_length,
+            "resampled_length": resampled_length,
+            "global_sensor_ids": global_mapping,
+            "normalized": normalize,
+        }
+        
+        return data_array, metadata
 
     def download(self) -> None:
         raise NotImplementedError

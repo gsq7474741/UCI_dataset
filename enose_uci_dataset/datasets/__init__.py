@@ -8,9 +8,16 @@
 
 from ._base import BaseEnoseDataset, DatasetWithTransforms, SampleRecord
 from ._info import ChannelConfig, DatasetInfo, SensorConfig, get_dataset_info, list_datasets
+from ._global import (
+    OMEGA_GLOBAL, F_STD, M_TOTAL,
+    SensorModel, SENSOR_MODELS, SENSOR_NAME_TO_ID, get_sensor_id, get_sensor_model,
+    TargetGas, GAS_NAME_TO_ENUM,
+    TaskType, TaskDefinition, TASKS,
+    DATASET_SAMPLE_RATES, DATASET_COLLECTION_TYPE, DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
+)
 from .combined import CombinedEnoseDataset, PretrainingDataset
 from .alcohol_qcm_sensor import AlcoholQCMSensor
-from .gas_sensor_array_drift import GasSensorArrayDrift
+from .gas_sensor_array_drift_at_different_concentrations import GasSensorArrayDrift
 from .gas_sensor_dynamic import GasSensorDynamic
 from .gas_sensor_flow_modulation import GasSensorFlowModulation
 from .gas_sensor_low_concentration import GasSensorLowConcentration
@@ -18,6 +25,7 @@ from .gas_sensor_temperature_modulation import GasSensorTemperatureModulation
 from .gas_sensor_turbulent import GasSensorTurbulent
 from .gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
 from .twin_gas_sensor_arrays import TwinGasSensorArrays
+from .smellnet import SmellNet, SMELLNET_INGREDIENTS, SMELLNET_6_CHANNELS, SMELLNET_ALL_CHANNELS, HF_REPO_ID
 
 
 DATASETS = {
@@ -30,6 +38,7 @@ DATASETS = {
     "gas_sensor_array_under_flow_modulation": GasSensorFlowModulation,
     "gas_sensors_for_home_activity_monitoring": GasSensorsForHomeActivityMonitoring,
     "twin_gas_sensor_arrays": TwinGasSensorArrays,
+    "smellnet": SmellNet,
 }
 
 
@@ -65,7 +74,30 @@ __all__ = [
     "GasSensorTurbulent",
     "GasSensorsForHomeActivityMonitoring",
     "TwinGasSensorArrays",
+    "SmellNet",
+    "SMELLNET_INGREDIENTS",
+    "SMELLNET_6_CHANNELS",
+    "SMELLNET_ALL_CHANNELS",
+    "HF_REPO_ID",
     # registry
     "DATASETS",
     "get_dataset_class",
+    # global space (Ω_global)
+    "OMEGA_GLOBAL",
+    "F_STD",
+    "M_TOTAL",
+    "SensorModel",
+    "SENSOR_MODELS",
+    "SENSOR_NAME_TO_ID",
+    "get_sensor_id",
+    "get_sensor_model",
+    "TargetGas",
+    "GAS_NAME_TO_ENUM",
+    "TaskType",
+    "TaskDefinition",
+    "TASKS",
+    "DATASET_SAMPLE_RATES",
+    "DATASET_COLLECTION_TYPE",
+    "DATASET_CHANNEL_TO_GLOBAL",
+    "get_global_channel_mapping",
 ]
