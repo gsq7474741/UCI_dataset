@@ -9,12 +9,23 @@
 from ._base import BaseEnoseDataset, DatasetWithTransforms, SampleRecord
 from ._info import ChannelConfig, DatasetInfo, SensorConfig, get_dataset_info, list_datasets
 from ._global import (
+    # Global space
     OMEGA_GLOBAL, F_STD, M_TOTAL,
+    # Sensor space
     SensorModel, SENSOR_MODELS, SENSOR_NAME_TO_ID, get_sensor_id, get_sensor_model,
     TargetGas, GAS_NAME_TO_ENUM,
+    # Task space - types and definitions
     TaskType, TaskDefinition, TASKS,
-    DATASET_SAMPLE_RATES, DATASET_COLLECTION_TYPE, DATASET_RESPONSE_TYPE,
-    DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
+    # Task space - classification labels
+    GasLabel, ActivityLabel, IngredientLabel,
+    GAS_LABEL_MAPPINGS, ACTIVITY_LABEL_MAPPINGS, get_global_label,
+    # Task space - regression configs
+    ConcentrationConfig, CONCENTRATION_CONFIGS, normalize_concentration,
+    # Task space - drift/transfer configs
+    DriftDomainConfig, DRIFT_CONFIGS,
+    TransferConfig, TRANSFER_CONFIGS,
+    # Dataset mappings
+    DATASET_SAMPLE_RATES, DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
 )
 from .combined import CombinedEnoseDataset, PretrainingDataset
 from .alcohol_qcm_sensor import AlcoholQCMSensor
@@ -87,6 +98,7 @@ __all__ = [
     "OMEGA_GLOBAL",
     "F_STD",
     "M_TOTAL",
+    # sensor space
     "SensorModel",
     "SENSOR_MODELS",
     "SENSOR_NAME_TO_ID",
@@ -94,12 +106,28 @@ __all__ = [
     "get_sensor_model",
     "TargetGas",
     "GAS_NAME_TO_ENUM",
+    # task space - types
     "TaskType",
     "TaskDefinition",
     "TASKS",
+    # task space - classification labels
+    "GasLabel",
+    "ActivityLabel",
+    "IngredientLabel",
+    "GAS_LABEL_MAPPINGS",
+    "ACTIVITY_LABEL_MAPPINGS",
+    "get_global_label",
+    # task space - regression
+    "ConcentrationConfig",
+    "CONCENTRATION_CONFIGS",
+    "normalize_concentration",
+    # task space - drift/transfer
+    "DriftDomainConfig",
+    "DRIFT_CONFIGS",
+    "TransferConfig",
+    "TRANSFER_CONFIGS",
+    # dataset mappings
     "DATASET_SAMPLE_RATES",
-    "DATASET_COLLECTION_TYPE",
-    "DATASET_RESPONSE_TYPE",
     "DATASET_CHANNEL_TO_GLOBAL",
     "get_global_channel_mapping",
 ]
