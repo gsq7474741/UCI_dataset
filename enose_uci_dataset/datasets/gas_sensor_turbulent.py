@@ -266,7 +266,15 @@ class GasSensorTurbulent(BaseEnoseDataset):
             - data: DataFrame with columns [time_s, temp_c, humidity_pct, sensor_0..sensor_7]
             - target: dict with gas configuration info
         """
-        df = pd.read_csv(record.path, sep=r"\s+", header=None)
+        # Try comma separator first (downsampled files use comma)
+        # Fall back to whitespace for raw files
+        try:
+            df = pd.read_csv(record.path, sep=",", header=None)
+            if df.shape[1] == 1:
+                # Single column means wrong separator, try whitespace
+                df = pd.read_csv(record.path, sep=r"\s+", header=None)
+        except Exception:
+            df = pd.read_csv(record.path, sep=r"\s+", header=None)
 
         # Expected: time, temp, humidity, 8 sensors
         if df.shape[1] >= 11:

@@ -76,6 +76,20 @@ SMELLNET_ALL_CHANNELS = [
     'Benzene', 'Temperature', 'Pressure', 'Humidity', 'Gas_Resistance', 'Altitude'
 ]
 
+# =============================================================================
+# Global Normalization Constants (like ImageNet mean/std)
+# Computed from entire training set only, used for train/val/test uniformly.
+# =============================================================================
+
+# SmellNet Pure (6 channels) - from base_training (250 samples, ~143k timesteps)
+# Order: NO2, C2H5OH, VOC, CO, Alcohol, LPG
+SMELLNET_PURE_MEAN = [26.867, 14.647, 29.401, 22.487, 0.004, 2.011]
+SMELLNET_PURE_STD = [77.336, 70.735, 99.810, 34.405, 1.721, 17.164]
+
+# SmellNet Mixture (6 channels) - TODO: compute from training_new
+SMELLNET_MIXTURE_MEAN = None  # To be computed
+SMELLNET_MIXTURE_STD = None
+
 
 class SmellNet(BaseEnoseDataset):
     """SmellNet dataset for smell recognition classification.
@@ -278,19 +292,28 @@ class SmellNet(BaseEnoseDataset):
                 )
         else:
             # Use local SmellNet-iclr structure
-            local_mapping = {
-                'train': 'base_training',
-                'test': 'test_seen',
-                'test_seen': 'test_seen',
-                'test_unseen': 'test_unseen',
-            }
+            # pure subset uses base_training/base_testing (hierarchical)
+            # mixture subset uses training_new/test_seen (flat)
+            if self._subset == 'pure':
+                local_mapping = {
+                    'train': 'base_training',
+                    'test': 'base_testing',
+                    'test_seen': 'base_testing',
+                }
+            else:  # mixture
+                local_mapping = {
+                    'train': 'training_new',
+                    'test': 'test_seen',
+                    'test_seen': 'test_seen',
+                    'test_unseen': 'test_unseen',
+                }
             
             if self.split is None:
                 dirs = []
-                for split_name in ['train', 'test_seen', 'test_unseen']:
-                    dir_name = local_mapping.get(split_name, split_name)
+                # Iterate through mapping keys to get correct directories
+                for split_name, dir_name in local_mapping.items():
                     dir_path = data_dir / dir_name
-                    if dir_path.exists():
+                    if dir_path.exists() and (dir_path, split_name) not in dirs:
                         dirs.append((dir_path, split_name))
                 return dirs
             elif self.split in local_mapping:
