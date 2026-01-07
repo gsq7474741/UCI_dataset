@@ -31,8 +31,8 @@ import numpy as np
 # These are auto-generated from YAML schemas - do not modify here!
 # To change sensor/dataset definitions, edit schemas/*.yaml and regenerate.
 # Auto-regeneration is triggered on import if schemas are newer.
-from . import _auto_generate  # noqa: F401 - triggers auto-regeneration
-from ._generated import (
+from .schema import _auto_generate  # noqa: F401 - triggers auto-regeneration
+from .schema._generated import (
     # Sensor models
     SensorModel,
     SENSOR_MODELS,

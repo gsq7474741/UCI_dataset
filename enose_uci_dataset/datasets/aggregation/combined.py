@@ -17,8 +17,8 @@ except Exception:
     class _TorchDataset:
         pass
 
-from ._base import BaseEnoseDataset
-from ._info import ChannelConfig, get_dataset_info, list_datasets
+from .._base import BaseEnoseDataset
+from ..schema._info import ChannelConfig, get_dataset_info, list_datasets
 
 
 def _get_datasets_registry():

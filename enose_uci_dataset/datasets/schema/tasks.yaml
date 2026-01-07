@@ -1,0 +1,96 @@
+# ============================================================================
+# TASK METADATA SCHEMA - 任务元数据定义
+# ============================================================================
+# This is the SINGLE SOURCE OF TRUTH for task definitions.
+# All TaskType and compatibility info defined here.
+# ============================================================================
+
+schema_version: "1.0"
+
+# ============================================================================
+# TASK TYPES - 任务类型定义
+# ============================================================================
+
+task_types:
+  - id: 0
+    name: "raw"
+    description: "Raw sensor data without labels"
+    metrics: []
+    
+  - id: 1
+    name: "gas_classification"
+    description: "Classify gas type from sensor response"
+    metrics: ["accuracy", "f1_macro"]
+    
+  - id: 2
+    name: "odor_classification"
+    description: "Classify odor/ingredient from sensor response"
+    metrics: ["accuracy", "f1_macro", "top5_accuracy"]
+    
+  - id: 3
+    name: "activity_recognition"
+    description: "Recognize human activity from sensor patterns"
+    metrics: ["accuracy", "f1_macro"]
+    
+  - id: 4
+    name: "concentration_regression"
+    description: "Predict gas concentration levels"
+    metrics: ["mae", "rmse", "r2"]
+    
+  - id: 5
+    name: "drift_compensation"
+    description: "Domain adaptation for sensor drift"
+    metrics: ["accuracy", "domain_accuracy"]
+    
+  - id: 6
+    name: "anomaly_detection"
+    description: "Detect anomalous sensor patterns"
+    metrics: ["auroc", "auprc", "f1"]
+    
+  - id: 7
+    name: "self_supervised"
+    description: "Self-supervised pretraining (MAE, contrastive)"
+    metrics: ["reconstruction_loss"]
+    
+  - id: 8
+    name: "multi_task"
+    description: "Multi-task learning across datasets"
+    metrics: ["avg_accuracy", "avg_f1"]
+
+# ============================================================================
+# TASK-DATASET COMPATIBILITY - 任务与数据集的兼容性
+# ============================================================================
+# empty list means compatible with ALL datasets
+
+task_compatibility:
+  gas_classification:
+    - "twin_gas_sensor_arrays"
+    - "gas_sensor_array_exposed_to_turbulent_gas_mixtures"
+    - "gas_sensor_array_low_concentration"
+    - "gas_sensor_array_temperature_modulation"
+    - "gas_sensor_array_under_dynamic_gas_mixtures"
+    - "gas_sensor_array_under_flow_modulation"
+    
+  odor_classification:
+    - "smellnet_pure"
+    - "smellnet_mixture"
+    - "g919_55"
+    
+  activity_recognition:
+    - "gas_sensors_for_home_activity_monitoring"
+    
+  concentration_regression:
+    - "gas_sensor_array_exposed_to_turbulent_gas_mixtures"
+    - "gas_sensor_array_low_concentration"
+    - "gas_sensor_array_under_dynamic_gas_mixtures"
+    
+  drift_compensation:
+    - "twin_gas_sensor_arrays"
+    
+  anomaly_detection: []  # all datasets
+  
+  self_supervised: []  # all datasets
+  
+  multi_task: []  # all datasets
+  
+  raw: []  # all datasets

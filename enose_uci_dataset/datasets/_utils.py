@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-from ._info import DatasetInfo
+from .schema._info import DatasetInfo
 
 
 def _sha1(path: Path, chunk_size: int = 1024 * 1024) -> str:

@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from ._base import BaseEnoseDataset, SampleRecord
-from ._info import get_dataset_info
-from ._utils import download_and_extract
+from .._base import BaseEnoseDataset, SampleRecord
+from ..schema._info import get_dataset_info
+from .._utils import download_and_extract
 
 
 class GasSensorDynamic(BaseEnoseDataset):

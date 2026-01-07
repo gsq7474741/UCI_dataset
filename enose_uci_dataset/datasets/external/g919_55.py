@@ -34,7 +34,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from ._base import BaseEnoseDataset, SampleRecord
+from .._base import BaseEnoseDataset, SampleRecord
 
 
 # Odor categories mapping

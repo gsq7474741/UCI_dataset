@@ -7,7 +7,7 @@
 """
 
 from ._base import BaseEnoseDataset, DatasetWithTransforms, SampleRecord
-from ._info import ChannelConfig, DatasetInfo, SensorConfig, get_dataset_info, list_datasets
+from .schema._info import ChannelConfig, DatasetInfo, SensorConfig, get_dataset_info, list_datasets
 from ._global import (
     # Global space
     OMEGA_GLOBAL, F_STD, M_TOTAL,
@@ -27,8 +27,8 @@ from ._global import (
     # Dataset mappings
     DATASET_SAMPLE_RATES, DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
 )
-from .combined import CombinedEnoseDataset, PretrainingDataset
-from .unified import (
+from .aggregation.combined import CombinedEnoseDataset, PretrainingDataset
+from .aggregation.unified import (
     UnifiedEnoseDataset,
     TaskType,
     SplitType,
@@ -39,15 +39,15 @@ from .unified import (
     UnifiedDatasetConfig,
     TASK_DATASET_COMPATIBILITY,
 )
-from .gas_sensor_dynamic import GasSensorDynamic
-from .gas_sensor_flow_modulation import GasSensorFlowModulation
-from .gas_sensor_low_concentration import GasSensorLowConcentration
-from .gas_sensor_temperature_modulation import GasSensorTemperatureModulation
-from .gas_sensor_turbulent import GasSensorTurbulent
-from .gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
-from .twin_gas_sensor_arrays import TwinGasSensorArrays
-from .smellnet import SmellNet, SMELLNET_INGREDIENTS, SMELLNET_6_CHANNELS, SMELLNET_ALL_CHANNELS, HF_REPO_ID
-from .g919_55 import (
+from .uci.gas_sensor_dynamic import GasSensorDynamic
+from .uci.gas_sensor_flow_modulation import GasSensorFlowModulation
+from .uci.gas_sensor_low_concentration import GasSensorLowConcentration
+from .uci.gas_sensor_temperature_modulation import GasSensorTemperatureModulation
+from .uci.gas_sensor_turbulent import GasSensorTurbulent
+from .uci.gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
+from .uci.twin_gas_sensor_arrays import TwinGasSensorArrays
+from .external.smellnet import SmellNet, SMELLNET_INGREDIENTS, SMELLNET_6_CHANNELS, SMELLNET_ALL_CHANNELS
+from .external.g919_55 import (
     G919SensorDataset,
     G919_CATEGORIES,
     G919_ODOR_TO_IDX,
@@ -114,7 +114,6 @@ __all__ = [
     "SMELLNET_INGREDIENTS",
     "SMELLNET_6_CHANNELS",
     "SMELLNET_ALL_CHANNELS",
-    "HF_REPO_ID",
     # G919-55
     "G919SensorDataset",
     "G919_CATEGORIES",

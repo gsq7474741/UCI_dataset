@@ -22,9 +22,8 @@ Channel Selection (Appendix D):
     Other channels (Benzene, Temperature, Pressure, Humidity, Gas_Resistance, Altitude)
     dropped due to sensor malfunctions in some data.
 
-Data sources:
-    - HuggingFace: DeweiFeng/smell-net (recommended)
-    - Local: SmellNet-iclr project directory
+Data source:
+    Local: {root}/smellnet
 
 Reference:
     SmellNet: Neural network framework for smell recognition using sensor data
@@ -41,12 +40,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from ._base import BaseEnoseDataset, SampleRecord
-from ._info import get_dataset_info
+from .._base import BaseEnoseDataset, SampleRecord
+from ..schema._info import get_dataset_info
 
 
-# HuggingFace dataset identifier
-HF_REPO_ID = "DeweiFeng/smell-net"
+# SmellNet data is loaded from {root}/smellnet/data by default
 
 # 50 ingredient categories
 SMELLNET_INGREDIENTS = [
@@ -182,6 +180,7 @@ class SmellNet(BaseEnoseDataset):
         
         self._subset = subset
         self._subset_config = self._SUBSET_CONFIG[subset]
+        # smellnet_root 可覆盖，默认为 None 表示使用 root/smellnet
         self._smellnet_root = Path(smellnet_root) if smellnet_root else None
         self._use_all_channels = use_all_channels
         
@@ -215,9 +214,8 @@ class SmellNet(BaseEnoseDataset):
     def data_dir(self) -> Path:
         """Get the data directory containing CSV files."""
         if self._smellnet_root is not None:
-            # Use local SmellNet project data
             return self._smellnet_root / "data"
-        # Use HF cached data
+        # 默认使用 {root}/smellnet/data
         return self.dataset_dir / "data"
     
     def _check_exists(self) -> bool:
@@ -226,37 +224,17 @@ class SmellNet(BaseEnoseDataset):
         if not data_dir.exists():
             return False
         
-        # Check for HF structure (offline_training, offline_testing)
-        hf_dirs = ['offline_training', 'offline_testing']
-        has_hf = any((data_dir / d).exists() for d in hf_dirs)
-        
-        # Check for local SmellNet-iclr structure (base_training)
-        local_dirs = ['base_training', 'training_new']
-        has_local = any((data_dir / d).exists() for d in local_dirs)
-        
-        return has_hf or has_local
+        # Check for local SmellNet-iclr structure
+        local_dirs = ['base_training', 'training_new', 'base_testing', 'test_seen']
+        return any((data_dir / d).exists() for d in local_dirs)
     
     def download(self) -> None:
-        """Download dataset from HuggingFace."""
-        try:
-            from huggingface_hub import snapshot_download
-        except ImportError:
+        """SmellNet uses local data, no download needed."""
+        if not self._check_exists():
             raise RuntimeError(
-                "huggingface_hub is required to download SmellNet. "
-                "Install it with: pip install huggingface_hub"
+                f"SmellNet data not found at {self.data_dir}. "
+                f"Please ensure SmellNet-iclr project is available at {self._smellnet_root}"
             )
-        
-        print(f"Downloading SmellNet dataset from HuggingFace ({HF_REPO_ID})...")
-        
-        # Download the entire dataset repository
-        cache_dir = snapshot_download(
-            repo_id=HF_REPO_ID,
-            repo_type="dataset",
-            local_dir=self.dataset_dir,
-            local_dir_use_symlinks=False,
-        )
-        
-        print(f"SmellNet dataset downloaded to: {cache_dir}")
     
     def _get_split_dirs(self) -> List[Tuple[Path, str]]:
         """Get directories to scan based on split.
@@ -266,64 +244,38 @@ class SmellNet(BaseEnoseDataset):
         """
         data_dir = self.data_dir
         
-        # Determine which directory mapping to use
-        # HF structure: offline_training, offline_testing, online_nuts, online_spices
-        # Local structure: base_training, test_seen, test_unseen
+        # Local SmellNet-iclr structure:
+        # pure subset uses base_training/base_testing (hierarchical)
+        # mixture subset uses training_new/test_seen/test_unseen (flat)
+        if self._subset == 'pure':
+            local_mapping = {
+                'train': 'base_training',
+                'test': 'base_testing',
+            }
+        else:  # mixture
+            local_mapping = {
+                'train': 'training_new',
+                'test': 'test_seen',
+                'test_unseen': 'test_unseen',
+            }
         
-        has_hf_structure = (data_dir / 'offline_training').exists()
-        
-        if has_hf_structure:
-            # Use HF directory structure
-            if self.split is None:
-                # Return all available directories
-                dirs = []
-                for split_name, dir_name in self._SPLIT_TO_DIR.items():
-                    dir_path = data_dir / dir_name
-                    if dir_path.exists():
-                        dirs.append((dir_path, split_name))
-                return dirs
-            elif self.split in self._SPLIT_TO_DIR:
-                dir_name = self._SPLIT_TO_DIR[self.split]
-                return [(data_dir / dir_name, self.split)]
-            else:
-                raise ValueError(
-                    f"Invalid split '{self.split}'. "
-                    f"Expected one of: None, {list(self._SPLIT_TO_DIR.keys())}"
-                )
+        if self.split is None:
+            dirs = []
+            seen_dirs = set()
+            for split_name, dir_name in local_mapping.items():
+                dir_path = data_dir / dir_name
+                if dir_path.exists() and dir_name not in seen_dirs:
+                    dirs.append((dir_path, split_name))
+                    seen_dirs.add(dir_name)
+            return dirs
+        elif self.split in local_mapping:
+            dir_name = local_mapping[self.split]
+            return [(data_dir / dir_name, self.split)]
         else:
-            # Use local SmellNet-iclr structure
-            # pure subset uses base_training/base_testing (hierarchical)
-            # mixture subset uses training_new/test_seen (flat)
-            if self._subset == 'pure':
-                local_mapping = {
-                    'train': 'base_training',
-                    'test': 'base_testing',
-                    'test_seen': 'base_testing',
-                }
-            else:  # mixture
-                local_mapping = {
-                    'train': 'training_new',
-                    'test': 'test_seen',
-                    'test_seen': 'test_seen',
-                    'test_unseen': 'test_unseen',
-                }
-            
-            if self.split is None:
-                dirs = []
-                # Iterate through mapping keys to get correct directories
-                for split_name, dir_name in local_mapping.items():
-                    dir_path = data_dir / dir_name
-                    if dir_path.exists() and (dir_path, split_name) not in dirs:
-                        dirs.append((dir_path, split_name))
-                return dirs
-            elif self.split in local_mapping:
-                dir_name = local_mapping[self.split]
-                return [(data_dir / dir_name, self.split)]
-            else:
-                raise ValueError(
-                    f"Invalid split '{self.split}'. "
-                    f"For local data, expected one of: None, 'train', 'test', 'test_seen', 'test_unseen'"
-                )
+            raise ValueError(
+                f"Invalid split '{self.split}'. "
+                f"Expected one of: None, {list(local_mapping.keys())}"
+            )
     
     def _make_dataset(self) -> List[SampleRecord]:
         """Build the dataset by scanning CSV files."""

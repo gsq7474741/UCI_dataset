@@ -1,0 +1,303 @@
+# ============================================================================
+# DATASET METADATA SCHEMA - 数据集元数据定义 (完整版)
+# ============================================================================
+# This is the SINGLE SOURCE OF TRUTH for all dataset definitions.
+# All DatasetInfo fields are defined here - NO hardcoded values in Python.
+#
+# Usage:
+#   Auto-regenerated on import if this file is newer than _generated.py
+# ============================================================================
+
+schema_version: "2.0"
+
+# ============================================================================
+# DATASET DEFINITIONS
+# ============================================================================
+
+datasets:
+  # -------------------------------------------------------------------------
+  # Twin Gas Sensor Arrays (UCI ID: 361)
+  # -------------------------------------------------------------------------
+  - name: "twin_gas_sensor_arrays"
+    uci_id: 361
+    file_name: "twin+gas+sensor+arrays.zip"
+    sha1: "a235ab3cf55685fc8346eafea3f18e080adb77a3"
+    url: "https://archive.ics.uci.edu/static/public/361/twin+gas+sensor+arrays.zip"
+    description: "Twin Gas Sensor Arrays"
+    tasks: ["classification", "drift_compensation", "transfer_learning"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro"
+    sample_rate_hz: 100
+    collection_type: "discrete"
+    response_type: "resistance"
+    extract_type: "standard"
+    extract_subdir: "data1"
+    channels:
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "KOhm", heater_v: 5.65}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "KOhm", heater_v: 5.65}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm", heater_v: 5.65}
+      - {sensor: "TGS2602", gas: ["Ammonia", "H2S", "VOC"], unit: "KOhm", heater_v: 5.65}
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "KOhm", heater_v: 5.00}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "KOhm", heater_v: 5.00}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm", heater_v: 5.00}
+      - {sensor: "TGS2602", gas: ["Ammonia", "H2S", "VOC"], unit: "KOhm", heater_v: 5.00}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensor Array under Dynamic Gas Mixtures (UCI ID: 322)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensor_array_under_dynamic_gas_mixtures"
+    uci_id: 322
+    file_name: "gas+sensor+array+under+dynamic+gas+mixtures.zip"
+    sha1: "12dd9c43e621d56b53f2f8894dddd6e410283d47"
+    url: "https://archive.ics.uci.edu/static/public/322/gas+sensor+array+under+dynamic+gas+mixtures.zip"
+    description: "Gas Sensor Array under Dynamic Gas Mixtures"
+    tasks: ["classification", "concentration_prediction"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro"
+    sample_rate_hz: 100
+    collection_type: "continuous"
+    response_type: "conductance"
+    extract_type: "standard"
+    channels:
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "S"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "S"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "S"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "S"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "S"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "S"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "S"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "S"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "S"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "S"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "S"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "S"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "S"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "S"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "S"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "S"}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensor Array Exposed to Turbulent Gas Mixtures (UCI ID: 309)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensor_array_exposed_to_turbulent_gas_mixtures"
+    uci_id: 309
+    file_name: "gas+sensor+array+exposed+to+turbulent+gas+mixtures.zip"
+    sha1: "c812370aa04a1491781767b3cf606ce6fa0d221e"
+    url: "https://archive.ics.uci.edu/static/public/309/gas+sensor+array+exposed+to+turbulent+gas+mixtures.zip"
+    description: "Gas Sensor Array Exposed to Turbulent Gas Mixtures"
+    tasks: ["classification", "concentration_prediction"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro"
+    sample_rate_hz: 50
+    collection_type: "continuous"
+    response_type: "resistance"
+    extract_type: "turbo"
+    channels:
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "KOhm"}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "KOhm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "KOhm"}
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "KOhm"}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "KOhm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "KOhm"}
+      - {sensor: "TEMPERATURE", gas: [], unit: "C"}
+      - {sensor: "HUMIDITY", gas: [], unit: "%RH"}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensor Array Low Concentration (UCI ID: 1081)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensor_array_low_concentration"
+    uci_id: 1081
+    file_name: "gas+sensor+array+low-concentration.zip"
+    sha1: "41818a074550dd23a222856afdc19c7fbf32903e"
+    url: "https://archive.ics.uci.edu/static/public/1081/gas+sensor+array+low-concentration.zip"
+    description: "Gas Sensor Array Low-Concentration Dataset"
+    tasks: ["classification", "concentration_prediction"]
+    sensor_type: "MOX"
+    manufacturer: "Mixed"
+    sample_rate_hz: 1
+    collection_type: "continuous"
+    response_type: "resistance"
+    extract_type: "standard"
+    paper_link: "https://doi.org/10.1109/TIM.2023.3251416"
+    channels:
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "ratio"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "ratio"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "ratio"}
+      - {sensor: "TGS826", gas: ["Ammonia"], unit: "ratio"}
+      - {sensor: "MQ136", gas: ["H2S"], unit: "ratio"}
+      - {sensor: "MQ137", gas: ["Ammonia"], unit: "ratio"}
+      - {sensor: "MQ138", gas: ["VOC"], unit: "ratio"}
+      - {sensor: "MQ3", gas: ["Alcohol"], unit: "ratio"}
+      - {sensor: "MQ9", gas: ["CO", "Combustible"], unit: "ratio"}
+      - {sensor: "MQ135", gas: ["VOC", "NH3", "CO2"], unit: "ratio"}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensor Array Temperature Modulation (UCI ID: 487)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensor_array_temperature_modulation"
+    uci_id: 487
+    file_name: "gas+sensor+array+temperature+modulation.zip"
+    sha1: "e9caaded42fa57086da2a56f5a3dfb2f7a7708d8"
+    url: "https://archive.ics.uci.edu/static/public/487/gas+sensor+array+temperature+modulation.zip"
+    description: "Gas Sensor Array Temperature Modulation"
+    tasks: ["classification"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro/FIS"
+    sample_rate_hz: 3.5
+    collection_type: "continuous"
+    response_type: "resistance"
+    extract_type: "turbo"
+    channels:
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "TGS3870-A04", gas: ["Methane", "CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "SB-500-12", gas: ["CO"], unit: "Ohm"}
+      - {sensor: "TEMPERATURE", gas: [], unit: "C"}
+      - {sensor: "HUMIDITY", gas: [], unit: "%RH"}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensor Array under Flow Modulation (UCI ID: 308)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensor_array_under_flow_modulation"
+    uci_id: 308
+    file_name: "gas+sensor+array+under+flow+modulation.zip"
+    sha1: "d8c3de28ece518cf57ed842c1d5b8a23ee03398b"
+    url: "https://archive.ics.uci.edu/static/public/308/gas+sensor+array+under+flow+modulation.zip"
+    description: "Gas Sensor Array under Flow Modulation"
+    tasks: ["classification"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro"
+    sample_rate_hz: 25
+    collection_type: "discrete"
+    response_type: "resistance"
+    extract_type: "turbo"
+    channels:
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "Ohm"}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "Ohm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "Ohm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "Ohm"}
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "Ohm"}
+      - {sensor: "TGS2612", gas: ["Methane", "Propane", "Butane"], unit: "Ohm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "Ohm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "Ohm"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "Ohm"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "Ohm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "Ohm"}
+      - {sensor: "TGS2611", gas: ["Methane"], unit: "Ohm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "Ohm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "Ohm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "Ohm"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "Ohm"}
+
+  # -------------------------------------------------------------------------
+  # Gas Sensors for Home Activity Monitoring (UCI ID: 362)
+  # -------------------------------------------------------------------------
+  - name: "gas_sensors_for_home_activity_monitoring"
+    uci_id: 362
+    file_name: "gas+sensors+for+home+activity+monitoring.zip"
+    sha1: "34101ca24e556dc14a6ee1e2910111ed49c0e6ce"
+    url: "https://archive.ics.uci.edu/static/public/362/gas+sensors+for+home+activity+monitoring.zip"
+    description: "Gas Sensors for Home Activity Monitoring"
+    tasks: ["classification", "activity_recognition"]
+    sensor_type: "MOX"
+    manufacturer: "Figaro"
+    sample_rate_hz: 1
+    collection_type: "continuous"
+    response_type: "resistance"
+    extract_type: "nested"
+    nested_zip: "HT_Sensor_dataset.zip"
+    channels:
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "KOhm"}
+      - {sensor: "TGS2602", gas: ["VOC", "H2S"], unit: "KOhm"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "KOhm"}
+      - {sensor: "TGS2600", gas: ["Hydrogen", "CO"], unit: "KOhm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm"}
+      - {sensor: "TGS2610", gas: ["Propane"], unit: "KOhm"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "KOhm"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "KOhm"}
+
+  # -------------------------------------------------------------------------
+  # SmellNet Pure Substances (HuggingFace)
+  # -------------------------------------------------------------------------
+  - name: "smellnet_pure"
+    uci_id: null
+    file_name: ""
+    sha1: ""
+    url: "https://huggingface.co/datasets/DeweiFeng/smell-net"
+    description: "SmellNet Pure Substances: 50 classes @ 1Hz"
+    tasks: ["classification"]
+    sensor_type: "MOX"
+    manufacturer: "Seeed/Winsen"
+    sample_rate_hz: 1
+    collection_type: "discrete"
+    response_type: "resistance_ratio"
+    extract_type: "huggingface"
+    channels:
+      - {sensor: "GM102B", gas: ["NO2"], unit: "ppm"}
+      - {sensor: "GM302B", gas: ["Ethanol"], unit: "ppm"}
+      - {sensor: "GM502B", gas: ["VOC"], unit: "ppm"}
+      - {sensor: "GM702B", gas: ["CO"], unit: "ppm"}
+      - {sensor: "MQ135", gas: ["Alcohol"], unit: "ppm"}
+      - {sensor: "MQ9", gas: ["LPG"], unit: "ppm"}
+
+  # -------------------------------------------------------------------------
+  # SmellNet Mixture Substances (HuggingFace)
+  # -------------------------------------------------------------------------
+  - name: "smellnet_mixture"
+    uci_id: null
+    file_name: ""
+    sha1: ""
+    url: "https://huggingface.co/datasets/DeweiFeng/smell-net"
+    description: "SmellNet Mixtures: 43 classes @ 10Hz"
+    tasks: ["classification"]
+    sensor_type: "MOX"
+    manufacturer: "Seeed/Winsen"
+    sample_rate_hz: 10
+    collection_type: "discrete"
+    response_type: "resistance_ratio"
+    extract_type: "huggingface"
+    channels:
+      - {sensor: "GM102B", gas: ["NO2"], unit: "ppm"}
+      - {sensor: "GM302B", gas: ["Ethanol"], unit: "ppm"}
+      - {sensor: "GM502B", gas: ["VOC"], unit: "ppm"}
+      - {sensor: "GM702B", gas: ["CO"], unit: "ppm"}
+      - {sensor: "MQ135", gas: ["Alcohol"], unit: "ppm"}
+      - {sensor: "MQ9", gas: ["LPG"], unit: "ppm"}
+
+  # -------------------------------------------------------------------------
+  # SJTU-G919 Dataset (55 odors)
+  # -------------------------------------------------------------------------
+  - name: "g919_55"
+    uci_id: null
+    file_name: ""
+    sha1: ""
+    url: ""
+    description: "SJTU-G919: 55 odor classes, 8-channel MEMS+Ceramic array"
+    tasks: ["classification"]
+    sensor_type: "MOX/MEMS"
+    manufacturer: "Winsen/Huiwen/Figaro"
+    sample_rate_hz: 1
+    collection_type: "discrete"
+    response_type: "resistance_ratio"
+    extract_type: "local"
+    channels:
+      - {sensor: "GM502B", gas: ["VOC"], unit: "response"}
+      - {sensor: "GM202B", gas: ["Formaldehyde", "VOC"], unit: "response"}
+      - {sensor: "SMD1005", gas: ["VOC"], unit: "response"}
+      - {sensor: "SMD1013B", gas: ["Combustible"], unit: "response"}
+      - {sensor: "MQ138", gas: ["Benzene", "Alcohol", "VOC"], unit: "response"}
+      - {sensor: "MQ2", gas: ["Combustible", "Smoke"], unit: "response"}
+      - {sensor: "TGS2609", gas: ["VOC", "Odor"], unit: "response"}
+      - {sensor: "TGS2620", gas: ["Alcohol", "VOC"], unit: "response"}

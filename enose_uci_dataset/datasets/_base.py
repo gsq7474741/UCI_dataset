@@ -76,7 +76,7 @@ class BaseEnoseDataset(DatasetWithTransforms):
             raise ValueError("Dataset must define class attribute 'name'")
 
         self.split = split
-        from ._info import get_dataset_info  # local import to avoid cycles
+        from .schema._info import get_dataset_info  # local import to avoid cycles
 
         self.info = get_dataset_info(self.name)
         self._samples: List[SampleRecord] = []

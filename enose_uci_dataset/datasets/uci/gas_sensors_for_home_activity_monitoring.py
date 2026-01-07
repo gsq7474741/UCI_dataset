@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from ._base import BaseEnoseDataset, SampleRecord
-from ._info import get_dataset_info
-from ._utils import download_and_extract
+from .._base import BaseEnoseDataset, SampleRecord
+from ..schema._info import get_dataset_info
+from .._utils import download_and_extract
 
 
 class GasSensorsForHomeActivityMonitoring(BaseEnoseDataset):

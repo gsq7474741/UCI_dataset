@@ -12,10 +12,9 @@ from pathlib import Path
 
 # Paths
 _THIS_DIR = Path(__file__).parent
-_PROJECT_ROOT = _THIS_DIR.parent.parent
-_SCHEMAS_DIR = _PROJECT_ROOT / "schemas"
+_SCHEMAS_DIR = _THIS_DIR  # YAML files now in same directory as this module
 _GENERATED_FILE = _THIS_DIR / "_generated.py"
-_SCHEMA_FILES = ["sensors.yaml", "datasets.yaml", "labels.yaml"]
+_SCHEMA_FILES = ["sensors.yaml", "datasets.yaml", "labels.yaml", "tasks.yaml"]
 
 
 def _needs_regeneration() -> bool:
@@ -177,7 +176,15 @@ from typing import Dict, FrozenSet, List, Optional, Tuple
         ])
         
         for ds in datasets:
-            channel_ids = [f'get_sensor_id("{ch}")' for ch in ds.get("channels", [])]
+            channels = ds.get("channels", [])
+            # Handle both old format (list of strings) and new format (list of dicts)
+            channel_ids = []
+            for ch in channels:
+                if isinstance(ch, dict):
+                    channel_ids.append(f'get_sensor_id("{ch["sensor"]}")')
+                else:
+                    channel_ids.append(f'get_sensor_id("{ch}")')
+            
             if len(channel_ids) <= 4:
                 channels_str = ", ".join(channel_ids)
                 lines.append(f'    "{ds["name"]}": [{channels_str}],')
@@ -194,6 +201,110 @@ from typing import Dict, FrozenSet, List, Optional, Tuple
             "def get_global_channel_mapping(dataset_name: str) -> List[int]:",
             '    """Get global sensor indices for a dataset\'s channels."""',
             "    return DATASET_CHANNEL_TO_GLOBAL.get(dataset_name, [])",
+            "",
+        ])
+        
+        return "\n".join(lines)
+
+    def generate_dataset_info(datasets: List[Dict]) -> str:
+        """Generate DatasetInfo instances from YAML."""
+        lines = [
+            "# =============================================================================",
+            "# DATASET INFO (from schemas/datasets.yaml)",
+            "# =============================================================================",
+            "",
+            "DATASET_INFO: Dict[str, Dict] = {",
+        ]
+        
+        for ds in datasets:
+            # Extract channel sensor names
+            channels = ds.get("channels", [])
+            channel_sensors = []
+            for ch in channels:
+                if isinstance(ch, dict):
+                    channel_sensors.append(ch["sensor"])
+                else:
+                    channel_sensors.append(ch)
+            
+            uci_id = ds.get("uci_id")
+            uci_id_str = str(uci_id) if uci_id is not None else "None"
+            
+            lines.append(f'    "{ds["name"]}": {{')
+            lines.append(f'        "name": "{ds["name"]}",')
+            lines.append(f'        "uci_id": {uci_id_str},')
+            lines.append(f'        "file_name": "{ds.get("file_name", "")}",')
+            lines.append(f'        "sha1": "{ds.get("sha1", "")}",')
+            lines.append(f'        "url": "{ds.get("url", "")}",')
+            lines.append(f'        "description": "{ds.get("description", "")}",')
+            lines.append(f'        "tasks": {ds.get("tasks", [])},')
+            lines.append(f'        "sensor_type": "{ds.get("sensor_type", "MOX")}",')
+            lines.append(f'        "manufacturer": "{ds.get("manufacturer", "")}",')
+            lines.append(f'        "sample_rate_hz": {ds.get("sample_rate_hz", 1)},')
+            lines.append(f'        "collection_type": "{ds.get("collection_type", "discrete")}",')
+            lines.append(f'        "response_type": "{ds.get("response_type", "resistance")}",')
+            lines.append(f'        "extract_type": "{ds.get("extract_type", "standard")}",')
+            lines.append(f'        "extract_subdir": "{ds.get("extract_subdir", "")}",')
+            lines.append(f'        "nested_zip": "{ds.get("nested_zip", "")}",')
+            lines.append(f'        "paper_link": "{ds.get("paper_link", "")}",')
+            lines.append(f'        "channel_sensors": {channel_sensors},')
+            lines.append(f'        "num_channels": {len(channel_sensors)},')
+            lines.append("    },")
+        
+        lines.extend([
+            "}",
+            "",
+            "",
+            "def get_dataset_info_dict(name: str) -> Dict:",
+            '    """Get dataset info dictionary by name."""',
+            "    normalized = name.lower().replace('-', '_')",
+            "    if normalized == 'smellnet':",
+            "        normalized = 'smellnet_pure'",
+            "    if normalized not in DATASET_INFO:",
+            "        available = ', '.join(sorted(DATASET_INFO.keys()))",
+            '        raise KeyError(f"Unknown dataset: {name}. Available: {available}")',
+            "    return DATASET_INFO[normalized]",
+            "",
+            "",
+            "def list_all_datasets() -> List[str]:",
+            '    """List all available dataset names."""',
+            "    return sorted(DATASET_INFO.keys())",
+            "",
+        ])
+        
+        return "\n".join(lines)
+
+    def generate_task_types(tasks_data: Dict) -> str:
+        """Generate TaskType enum and compatibility from YAML."""
+        task_types = tasks_data.get("task_types", [])
+        compatibility = tasks_data.get("task_compatibility", {})
+        
+        lines = [
+            "# =============================================================================",
+            "# TASK TYPES (from schemas/tasks.yaml)",
+            "# =============================================================================",
+            "",
+            "TASK_TYPES: Dict[str, int] = {",
+        ]
+        
+        for task in task_types:
+            lines.append(f'    "{task["name"]}": {task["id"]},')
+        
+        lines.extend([
+            "}",
+            "",
+            "TASK_ID_TO_NAME: Dict[int, str] = {v: k for k, v in TASK_TYPES.items()}",
+            "",
+            "TASK_DATASET_COMPATIBILITY: Dict[str, List[str]] = {",
+        ])
+        
+        for task_name, datasets in compatibility.items():
+            if datasets:
+                lines.append(f'    "{task_name}": {datasets},')
+            else:
+                lines.append(f'    "{task_name}": [],  # all datasets')
+        
+        lines.extend([
+            "}",
             "",
         ])
         
@@ -249,6 +360,7 @@ from typing import Dict, FrozenSet, List, Optional, Tuple
     sensors_data = load_yaml("sensors.yaml")
     datasets_data = load_yaml("datasets.yaml")
     labels_data = load_yaml("labels.yaml")
+    tasks_data = load_yaml("tasks.yaml")
     
     if not sensors_data.get("sensors") or not datasets_data.get("datasets"):
         return False
@@ -258,6 +370,8 @@ from typing import Dict, FrozenSet, List, Optional, Tuple
         generate_header(),
         generate_sensor_models(sensors_data["sensors"]),
         generate_dataset_metadata(datasets_data["datasets"]),
+        generate_dataset_info(datasets_data["datasets"]),
+        generate_task_types(tasks_data) if tasks_data else "",
         generate_gas_labels(labels_data),
     ]
     

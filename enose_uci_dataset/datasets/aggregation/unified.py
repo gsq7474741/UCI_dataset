@@ -242,15 +242,15 @@ class UnifiedDatasetConfig:
 
 def _get_dataset_registry() -> Dict[str, type]:
     """Lazy import dataset classes to avoid circular imports."""
-    from .gas_sensor_dynamic import GasSensorDynamic
-    from .gas_sensor_flow_modulation import GasSensorFlowModulation
-    from .gas_sensor_low_concentration import GasSensorLowConcentration
-    from .gas_sensor_temperature_modulation import GasSensorTemperatureModulation
-    from .gas_sensor_turbulent import GasSensorTurbulent
-    from .gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
-    from .twin_gas_sensor_arrays import TwinGasSensorArrays
-    from .smellnet import SmellNet
-    from .g919_55 import G919SensorDataset
+    from ..uci.gas_sensor_dynamic import GasSensorDynamic
+    from ..uci.gas_sensor_flow_modulation import GasSensorFlowModulation
+    from ..uci.gas_sensor_low_concentration import GasSensorLowConcentration
+    from ..uci.gas_sensor_temperature_modulation import GasSensorTemperatureModulation
+    from ..uci.gas_sensor_turbulent import GasSensorTurbulent
+    from ..uci.gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
+    from ..uci.twin_gas_sensor_arrays import TwinGasSensorArrays
+    from ..external.smellnet import SmellNet
+    from ..external.g919_55 import G919SensorDataset
     
     return {
         "gas_sensor_array_exposed_to_turbulent_gas_mixtures": GasSensorTurbulent,
@@ -689,7 +689,7 @@ class UnifiedEnoseDataset(_TorchDataset):
             local_label = target
         
         if self.use_global_labels:
-            from ._global import GAS_LABEL_MAPPINGS, get_global_label
+            from .._global import GAS_LABEL_MAPPINGS, get_global_label
             return get_global_label(ds_name, local_label, 'gas')
         else:
             return local_label
@@ -877,7 +877,7 @@ class UnifiedEnoseDataset(_TorchDataset):
             return data[:self.max_channels]
         
         elif self.channel_align == ChannelAlignMode.GLOBAL:
-            from ._global import M_TOTAL, get_global_channel_mapping
+            from .._global import M_TOTAL, get_global_channel_mapping
             
             C, T = data.shape
             aligned = np.zeros((M_TOTAL, T), dtype=data.dtype)
@@ -936,7 +936,7 @@ class UnifiedEnoseDataset(_TorchDataset):
         """Get number of classes for classification tasks."""
         if self.task == TaskType.GAS_CLASSIFICATION:
             if self.use_global_labels:
-                from ._global import GasLabel
+                from .._global import GasLabel
                 return len(GasLabel)
             else:
                 # Max local classes across datasets
@@ -952,7 +952,7 @@ class UnifiedEnoseDataset(_TorchDataset):
             )
         
         elif self.task == TaskType.ACTIVITY_RECOGNITION:
-            from ._global import ActivityLabel
+            from .._global import ActivityLabel
             return len(ActivityLabel)
         
         return None
@@ -961,7 +961,7 @@ class UnifiedEnoseDataset(_TorchDataset):
     def num_channels(self) -> int:
         """Get number of channels (max across datasets or aligned)."""
         if self.channel_align == ChannelAlignMode.GLOBAL:
-            from ._global import M_TOTAL
+            from .._global import M_TOTAL
             return M_TOTAL
         elif self.channel_align == ChannelAlignMode.PAD:
             return self.max_channels
