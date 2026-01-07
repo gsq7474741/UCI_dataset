@@ -24,7 +24,7 @@ from ._info import ChannelConfig, get_dataset_info, list_datasets
 def _get_datasets_registry():
     """Lazy import to avoid circular dependency."""
     from .alcohol_qcm_sensor import AlcoholQCMSensor
-    from .gas_sensor_array_drift import GasSensorArrayDrift
+    from .gas_sensor_array_drift_at_different_concentrations import GasSensorArrayDrift
     from .gas_sensor_dynamic import GasSensorDynamic
     from .gas_sensor_flow_modulation import GasSensorFlowModulation
     from .gas_sensor_low_concentration import GasSensorLowConcentration

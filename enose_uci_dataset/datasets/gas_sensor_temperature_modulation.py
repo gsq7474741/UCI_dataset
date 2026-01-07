@@ -99,7 +99,7 @@ class GasSensorTemperatureModulation(BaseEnoseDataset):
         split: Optional[str] = None,
         download: bool = False,
         cache: bool = True,
-        segment_by_concentration: bool = False,
+        segment_by_concentration: bool = True,  # Default True: segment continuous data
         transforms=None,
         transform=None,
         target_transform=None,

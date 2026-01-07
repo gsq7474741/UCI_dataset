@@ -50,7 +50,7 @@ class SensorConfig:
 @dataclass(frozen=True)
 class TimeSeriesConfig:
     continuous: bool = False
-    sample_rate_hz: Optional[int] = None
+    sample_rate_hz: Optional[float] = None  # Supports fractional rates (e.g., 3.5 Hz)
 
 
 @dataclass(frozen=True)
@@ -65,7 +65,7 @@ class DatasetInfo:
     sensors: SensorConfig = SensorConfig()
     time_series: Optional[TimeSeriesConfig] = None
     extract: ExtractConfig = ExtractConfig()
-
+    paper_link: Optional[str] = None
 
 # =============================================================================
 # Channel configurations for each dataset (gathered from UCI pages)
@@ -165,10 +165,25 @@ _DRIFT_CHANNELS = tuple(
     for i in range(16)
 )
 
-# Gas Sensor Array under Flow Modulation: 16 sensors (specific models not documented)
-_FLOW_MODULATION_CHANNELS = tuple(
-    ChannelConfig(i, "MOX", (), "dR", None, f"Sensor {i+1}")
-    for i in range(16)
+# Gas Sensor Array under Flow Modulation: 16 sensors (per paper Table 1)
+# 5 TGS models at 2 operating voltages (5.0V/3.3V) with different load resistors (21kΩ/82kΩ)
+_FLOW_MODULATION_CHANNELS = (
+    ChannelConfig(0, "TGS2610", ("Propane",), "dR", 5.0, "R1: 21kΩ load"),
+    ChannelConfig(1, "TGS2610", ("Propane",), "dR", 5.0, "R2: 21kΩ load"),
+    ChannelConfig(2, "TGS2602", ("Ammonia", "H2S", "VOC"), "dR", 5.0, "R3: 21kΩ load"),
+    ChannelConfig(3, "TGS2600", ("Hydrogen", "CO"), "dR", 5.0, "R4: 21kΩ load"),
+    ChannelConfig(4, "TGS2610", ("Propane",), "dR", 5.0, "R5: 21kΩ load"),
+    ChannelConfig(5, "TGS2611", ("Methane",), "dR", 5.0, "R6: 21kΩ load"),
+    ChannelConfig(6, "TGS2610", ("Propane",), "dR", 5.0, "R7: 21kΩ load"),
+    ChannelConfig(7, "TGS2620", ("Alcohol", "VOC"), "dR", 5.0, "R8: 21kΩ load"),
+    ChannelConfig(8, "TGS2610", ("Propane",), "dR", 3.3, "R9: 82kΩ load"),
+    ChannelConfig(9, "TGS2620", ("Alcohol", "VOC"), "dR", 3.3, "R10: 82kΩ load"),
+    ChannelConfig(10, "TGS2602", ("Ammonia", "H2S", "VOC"), "dR", 3.3, "R11: 82kΩ load"),
+    ChannelConfig(11, "TGS2611", ("Methane",), "dR", 3.3, "R12: 82kΩ load"),
+    ChannelConfig(12, "TGS2610", ("Propane",), "dR", 3.3, "R13: 82kΩ load"),
+    ChannelConfig(13, "TGS2610", ("Propane",), "dR", 3.3, "R14: 82kΩ load"),
+    ChannelConfig(14, "TGS2610", ("Propane",), "dR", 3.3, "R15: 82kΩ load"),
+    ChannelConfig(15, "TGS2600", ("Hydrogen", "CO"), "dR", 3.3, "R16: 82kΩ load"),
 )
 
 # Alcohol QCM Sensor: 5 QCM sensors with 2 channels each
@@ -178,6 +193,19 @@ _ALCOHOL_QCM_CHANNELS = (
     ChannelConfig(2, "QCM7", ("Alcohol",), "frequency", None, "MIP:NP=1:0.5"),
     ChannelConfig(3, "QCM10", ("Alcohol",), "frequency", None, "MIP:NP=1:2"),
     ChannelConfig(4, "QCM12", ("Alcohol",), "frequency", None, "MIP:NP=0:1"),
+)
+
+# SmellNet: 6 gas sensors per paper (Appendix D)
+# "we decided to keep only 6 channels (NO2, C2H5OH, VOC, CO, Alcohol, LPG)"
+# Sensors: MQ-3 (Alcohol), MQ-5 (LPG), MQ-9 (CO), WSP2110 (VOC), MP503 (NO2), Grove Multichannel V2
+# BME680 for environmental control (pressure, temperature, humidity)
+_SMELLNET_CHANNELS = (
+    ChannelConfig(0, "MP503", ("NO2",), "raw", None, "Nitrogen dioxide sensor"),
+    ChannelConfig(1, "WSP2110", ("Ethanol",), "raw", None, "Ethanol/VOC sensor"),
+    ChannelConfig(2, "WSP2110", ("VOC",), "raw", None, "Volatile organic compounds"),
+    ChannelConfig(3, "MQ-9", ("CO",), "raw", None, "Carbon monoxide sensor"),
+    ChannelConfig(4, "MQ-3", ("Alcohol",), "raw", None, "Alcohol sensor"),
+    ChannelConfig(5, "MQ-5", ("LPG",), "raw", None, "Liquefied petroleum gas sensor"),
 )
 
 
@@ -231,6 +259,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         sensors=SensorConfig(type="MOX", count=10, channels=_LOW_CONC_CHANNELS, manufacturer="Mixed"),
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=1),
         extract=ExtractConfig(type="standard"),
+        paper_link="https://doi.org/10.1109/TIM.2023.3251416",
     ),
     "gas_sensor_array_temperature_modulation": DatasetInfo(
         name="gas_sensor_array_temperature_modulation",
@@ -241,7 +270,7 @@ _DATASETS: Dict[str, DatasetInfo] = {
         description="Gas Sensor Array Temperature Modulation",
         tasks=["classification"],
         sensors=SensorConfig(type="MOX", count=14, channels=_TEMP_MODULATION_CHANNELS, manufacturer="Figaro/FIS"),
-        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=3),
+        time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=3.5),  # UCI: sampled at 3.5 Hz
         extract=ExtractConfig(type="turbo"),
     ),
     "gas_sensor_array_under_dynamic_gas_mixtures": DatasetInfo(
@@ -292,11 +321,38 @@ _DATASETS: Dict[str, DatasetInfo] = {
         time_series=TimeSeriesConfig(continuous=True, sample_rate_hz=100),
         extract=ExtractConfig(type="standard", subdir="data1"),
     ),
+    "smellnet_pure": DatasetInfo(
+        name="smellnet_pure",
+        uci_id=None,  # Not from UCI
+        file_name="",  # HuggingFace dataset: DeweiFeng/smell-net
+        sha1="",
+        url="https://huggingface.co/datasets/DeweiFeng/smell-net",
+        description="SmellNet Pure Substances: 50 classes of pure ingredients @ 1Hz, 12-channel sensor array",
+        tasks=["classification"],
+        sensors=SensorConfig(type="MOX", count=6, channels=_SMELLNET_CHANNELS, manufacturer="Seeed/Generic"),
+        time_series=TimeSeriesConfig(continuous=False, sample_rate_hz=1),  # Paper: 1Hz for Pure
+        extract=ExtractConfig(type="huggingface"),
+    ),
+    "smellnet_mixture": DatasetInfo(
+        name="smellnet_mixture",
+        uci_id=None,  # Not from UCI
+        file_name="",  # HuggingFace dataset: DeweiFeng/smell-net
+        sha1="",
+        url="https://huggingface.co/datasets/DeweiFeng/smell-net",
+        description="SmellNet Mixtures: 43 classes of simulated mixtures @ 10Hz, 12-channel sensor array",
+        tasks=["classification"],
+        sensors=SensorConfig(type="MOX", count=6, channels=_SMELLNET_CHANNELS, manufacturer="Seeed/Generic"),
+        time_series=TimeSeriesConfig(continuous=False, sample_rate_hz=10),  # Paper: 10Hz for Mixture
+        extract=ExtractConfig(type="huggingface"),
+    ),
 }
 
 
 def get_dataset_info(name: str) -> DatasetInfo:
     normalized = name.lower().replace("-", "_")
+    # Handle smellnet alias (base class uses 'smellnet', actual subsets are smellnet_pure/mixture)
+    if normalized == "smellnet":
+        normalized = "smellnet_pure"  # Default to pure subset
     if normalized not in _DATASETS:
         available = ", ".join(sorted(_DATASETS.keys()))
         raise KeyError(f"Unknown dataset: {name}. Available: {available}")
