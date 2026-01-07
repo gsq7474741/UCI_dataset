@@ -1,0 +1,308 @@
+# ============================================================================
+# SENSOR METADATA SCHEMA - 传感器元数据定义
+# ============================================================================
+# This is the SINGLE SOURCE OF TRUTH for sensor definitions.
+# DO NOT modify _generated.py directly - modify this file and regenerate.
+#
+# Usage:
+#   python scripts/generate_metadata.py
+#
+# Naming Convention:
+#   - No hyphens in sensor names (except special cases: TGS3870-A04, SB-500-12)
+#   - Examples: MQ135 (not MQ-135), GM502B (not GM-502B)
+# ============================================================================
+
+# Schema version for compatibility checking
+schema_version: "1.0"
+
+# ============================================================================
+# SENSOR MODELS - 传感器型号定义
+# ============================================================================
+# Each sensor has:
+#   - id: Global unique index (0 = UNKNOWN)
+#   - name: Sensor model name (standardized)
+#   - type: Sensor technology (MOX, MEMS, QCM, EC, PID)
+#   - manufacturer: Manufacturer name
+#   - target_gases: List of target gases
+#   - description: Human-readable description
+
+sensors:
+  # Index 0: Unknown/Generic
+  - id: 0
+    name: "UNKNOWN"
+    type: "UNKNOWN"
+    manufacturer: ""
+    target_gases: []
+    description: "Unknown sensor type"
+
+  # -------------------------------------------------------------------------
+  # Figaro TGS Series (MOX) - indices 1-12
+  # -------------------------------------------------------------------------
+  - id: 1
+    name: "TGS2600"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Hydrogen", "CO"]
+    description: "Air contaminants"
+
+  - id: 2
+    name: "TGS2602"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Ammonia", "H2S", "VOC"]
+    description: "Air quality"
+
+  - id: 3
+    name: "TGS2603"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Ammonia", "H2S"]
+    description: "Odor detection"
+
+  - id: 4
+    name: "TGS2610"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Propane"]
+    description: "LP gas"
+
+  - id: 5
+    name: "TGS2611"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Methane"]
+    description: "Methane detection"
+
+  - id: 6
+    name: "TGS2612"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Methane", "Propane", "Butane"]
+    description: "Combustible gas"
+
+  - id: 7
+    name: "TGS2620"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Alcohol", "VOC"]
+    description: "Alcohol/solvent vapors"
+
+  - id: 8
+    name: "TGS2630"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Freon"]
+    description: "Refrigerant gas"
+
+  - id: 9
+    name: "TGS3870-A04"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["CO", "Methane"]
+    description: "CO/Methane combo"
+
+  - id: 10
+    name: "TGS813"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Combustible"]
+    description: "Combustible gas"
+
+  - id: 11
+    name: "TGS822"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["Alcohol", "VOC"]
+    description: "Organic solvent"
+
+  - id: 12
+    name: "TGS2609"
+    type: "MOX"
+    manufacturer: "Figaro"
+    target_gases: ["VOC", "Odor"]
+    description: "VOC/Odor detection"
+
+  # -------------------------------------------------------------------------
+  # FIS Sensors - index 13
+  # -------------------------------------------------------------------------
+  - id: 13
+    name: "SB-500-12"
+    type: "MOX"
+    manufacturer: "FIS"
+    target_gases: ["CO"]
+    description: "CO detection"
+
+  # -------------------------------------------------------------------------
+  # Winsen MQ Series (MOX) - indices 14-20
+  # -------------------------------------------------------------------------
+  - id: 14
+    name: "MQ2"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Combustible", "Smoke"]
+    description: "Combustible gas/Smoke"
+
+  - id: 15
+    name: "MQ3"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Alcohol"]
+    description: "Alcohol sensor"
+
+  - id: 16
+    name: "MQ5"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["LPG"]
+    description: "LPG/natural gas"
+
+  - id: 17
+    name: "MQ9"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["CO"]
+    description: "CO sensor"
+
+  - id: 18
+    name: "MQ135"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["NH3", "NOx", "Benzene"]
+    description: "Air quality"
+
+  - id: 19
+    name: "MQ137"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Ammonia"]
+    description: "Ammonia sensor"
+
+  - id: 20
+    name: "MQ138"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Alcohol", "Benzene", "VOC"]
+    description: "Organic gas"
+
+  # -------------------------------------------------------------------------
+  # Winsen Grove Multichannel V2 (MEMS/MOX) - indices 21-25
+  # -------------------------------------------------------------------------
+  - id: 21
+    name: "GM102B"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["NO2"]
+    description: "NO2 sensor (Grove V2)"
+
+  - id: 22
+    name: "GM202B"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Formaldehyde", "VOC"]
+    description: "Formaldehyde/VOC (Grove V2)"
+
+  - id: 23
+    name: "GM302B"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Ethanol"]
+    description: "Ethanol sensor (Grove V2)"
+
+  - id: 24
+    name: "GM502B"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["VOC"]
+    description: "VOC sensor (Grove V2)"
+
+  - id: 25
+    name: "GM702B"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["CO"]
+    description: "CO sensor (Grove V2)"
+
+  # -------------------------------------------------------------------------
+  # Suzhou Huiwen Nano SMD Series (MEMS) - indices 26-27
+  # -------------------------------------------------------------------------
+  - id: 26
+    name: "SMD1005"
+    type: "MEMS"
+    manufacturer: "Huiwen"
+    target_gases: ["VOC"]
+    description: "VOC MEMS sensor"
+
+  - id: 27
+    name: "SMD1013B"
+    type: "MEMS"
+    manufacturer: "Huiwen"
+    target_gases: ["Combustible"]
+    description: "Combustible gas MEMS"
+
+  # -------------------------------------------------------------------------
+  # Other Winsen Sensors - indices 28-29
+  # -------------------------------------------------------------------------
+  - id: 28
+    name: "MP503"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["NO2"]
+    description: "NO2 sensor"
+
+  - id: 29
+    name: "WSP2110"
+    type: "MOX"
+    manufacturer: "Winsen"
+    target_gases: ["Ethanol", "VOC"]
+    description: "VOC/Ethanol sensor"
+
+  # -------------------------------------------------------------------------
+  # Electrochemical Sensors - indices 30-32
+  # -------------------------------------------------------------------------
+  - id: 30
+    name: "2M012"
+    type: "EC"
+    manufacturer: "Generic"
+    target_gases: ["Formaldehyde"]
+    description: "Formaldehyde"
+
+  - id: 31
+    name: "2SH12"
+    type: "EC"
+    manufacturer: "Generic"
+    target_gases: ["H2S"]
+    description: "H2S sensor"
+
+  - id: 32
+    name: "VOCS-P"
+    type: "PID"
+    manufacturer: "Generic"
+    target_gases: ["VOC"]
+    description: "VOC PID sensor"
+
+  # -------------------------------------------------------------------------
+  # Generic Placeholder - index 33
+  # -------------------------------------------------------------------------
+  - id: 33
+    name: "MOX"
+    type: "MOX"
+    manufacturer: "Generic"
+    target_gases: []
+    description: "Generic MOX sensor"
+
+  # -------------------------------------------------------------------------
+  # Virtual Environment Sensors - indices 34-35
+  # -------------------------------------------------------------------------
+  - id: 34
+    name: "TEMPERATURE"
+    type: "ENV"
+    manufacturer: "Virtual"
+    target_gases: []
+    description: "Virtual temperature sensor (°C)"
+
+  - id: 35
+    name: "HUMIDITY"
+    type: "ENV"
+    manufacturer: "Virtual"
+    target_gases: []
+    description: "Virtual humidity sensor (%RH)"

@@ -28,8 +28,17 @@ from ._global import (
     DATASET_SAMPLE_RATES, DATASET_CHANNEL_TO_GLOBAL, get_global_channel_mapping,
 )
 from .combined import CombinedEnoseDataset, PretrainingDataset
-from .alcohol_qcm_sensor import AlcoholQCMSensor
-from .gas_sensor_array_drift_at_different_concentrations import GasSensorArrayDrift
+from .unified import (
+    UnifiedEnoseDataset,
+    TaskType,
+    SplitType,
+    NormalizeType,
+    ChannelAlignMode,
+    SplitConfig,
+    WindowConfig,
+    UnifiedDatasetConfig,
+    TASK_DATASET_COMPATIBILITY,
+)
 from .gas_sensor_dynamic import GasSensorDynamic
 from .gas_sensor_flow_modulation import GasSensorFlowModulation
 from .gas_sensor_low_concentration import GasSensorLowConcentration
@@ -38,11 +47,17 @@ from .gas_sensor_turbulent import GasSensorTurbulent
 from .gas_sensors_for_home_activity_monitoring import GasSensorsForHomeActivityMonitoring
 from .twin_gas_sensor_arrays import TwinGasSensorArrays
 from .smellnet import SmellNet, SMELLNET_INGREDIENTS, SMELLNET_6_CHANNELS, SMELLNET_ALL_CHANNELS, HF_REPO_ID
+from .g919_55 import (
+    G919SensorDataset,
+    G919_CATEGORIES,
+    G919_ODOR_TO_IDX,
+    G919_IDX_TO_ODOR,
+    G919_NUM_CLASSES,
+    G919_CATEGORY_TO_IDX,
+)
 
 
 DATASETS = {
-    "alcohol_qcm_sensor_dataset": AlcoholQCMSensor,
-    "gas_sensor_array_drift_dataset_at_different_concentrations": GasSensorArrayDrift,
     "gas_sensor_array_exposed_to_turbulent_gas_mixtures": GasSensorTurbulent,
     "gas_sensor_array_low_concentration": GasSensorLowConcentration,
     "gas_sensor_array_temperature_modulation": GasSensorTemperatureModulation,
@@ -51,6 +66,7 @@ DATASETS = {
     "gas_sensors_for_home_activity_monitoring": GasSensorsForHomeActivityMonitoring,
     "twin_gas_sensor_arrays": TwinGasSensorArrays,
     "smellnet": SmellNet,
+    "g919_55": G919SensorDataset,
 }
 
 
@@ -76,9 +92,17 @@ __all__ = [
     # combined datasets
     "CombinedEnoseDataset",
     "PretrainingDataset",
+    # unified dataset
+    "UnifiedEnoseDataset",
+    "TaskType",
+    "SplitType",
+    "NormalizeType",
+    "ChannelAlignMode",
+    "SplitConfig",
+    "WindowConfig",
+    "UnifiedDatasetConfig",
+    "TASK_DATASET_COMPATIBILITY",
     # datasets
-    "AlcoholQCMSensor",
-    "GasSensorArrayDrift",
     "GasSensorDynamic",
     "GasSensorFlowModulation",
     "GasSensorLowConcentration",
@@ -91,6 +115,13 @@ __all__ = [
     "SMELLNET_6_CHANNELS",
     "SMELLNET_ALL_CHANNELS",
     "HF_REPO_ID",
+    # G919-55
+    "G919SensorDataset",
+    "G919_CATEGORIES",
+    "G919_ODOR_TO_IDX",
+    "G919_IDX_TO_ODOR",
+    "G919_NUM_CLASSES",
+    "G919_CATEGORY_TO_IDX",
     # registry
     "DATASETS",
     "get_dataset_class",

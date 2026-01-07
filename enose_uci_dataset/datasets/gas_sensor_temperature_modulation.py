@@ -289,6 +289,7 @@ class GasSensorTemperatureModulation(BaseEnoseDataset):
         df = pd.read_csv(record.path)  # CSV with header
 
         # Rename columns to standardized names
+        # Original order: time, co_ppm, humidity, temp, flow_rate, heater_v, R1-R14
         if len(df.columns) >= 20:
             df.columns = ["time_s", "co_ppm", "humidity_pct", "temp_c", "flow_rate", "heater_v"] + \
                          [f"sensor_{i}" for i in range(14)]
@@ -298,6 +299,11 @@ class GasSensorTemperatureModulation(BaseEnoseDataset):
         end_idx = record.meta.get("end_idx")
         if start_idx is not None and end_idx is not None:
             df = df.iloc[start_idx:end_idx].reset_index(drop=True)
+
+        # Filter out timestamp and auxiliary columns, keep humidity/temp as virtual sensors
+        # Final channel order: humidity_pct, temp_c, sensor_0..sensor_13
+        keep_cols = ["humidity_pct", "temp_c"] + [f"sensor_{i}" for i in range(14)]
+        df = df[[c for c in keep_cols if c in df.columns]]
 
         return df, dict(record.target)
 

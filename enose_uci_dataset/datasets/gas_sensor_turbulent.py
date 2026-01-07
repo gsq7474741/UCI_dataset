@@ -285,6 +285,11 @@ class GasSensorTurbulent(BaseEnoseDataset):
             cols = ["time_s", "temp_c", "humidity_pct"] + [f"sensor_{i}" for i in range(df.shape[1] - 3)]
             df.columns = cols[:df.shape[1]]
 
+        # Filter out timestamp, keep temp/humidity as virtual sensors (ch0=temp, ch1=humidity)
+        # Final channel order: temp_c, humidity_pct, sensor_0..sensor_7
+        keep_cols = ["temp_c", "humidity_pct"] + [c for c in df.columns if c.startswith("sensor_")]
+        df = df[[c for c in keep_cols if c in df.columns]]
+
         return df, dict(record.target)
 
     @staticmethod

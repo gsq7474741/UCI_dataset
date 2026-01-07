@@ -1,0 +1,392 @@
+# ============================================================================
+# LABEL METADATA SCHEMA - 标签元数据定义
+# ============================================================================
+# This is the SINGLE SOURCE OF TRUTH for label definitions.
+# DO NOT modify _generated.py directly - modify this file and regenerate.
+#
+# Usage:
+#   python scripts/generate_metadata.py
+# ============================================================================
+
+schema_version: "1.0"
+
+# ============================================================================
+# TARGET GASES - 目标气体枚举
+# ============================================================================
+target_gases:
+  - id: 0
+    name: "UNKNOWN"
+  - id: 1
+    name: "ALCOHOL"
+  - id: 2
+    name: "AMMONIA"
+  - id: 3
+    name: "BENZENE"
+  - id: 4
+    name: "BUTANE"
+  - id: 5
+    name: "CO"
+  - id: 6
+    name: "COMBUSTIBLE"
+  - id: 7
+    name: "ETHANOL"
+  - id: 8
+    name: "FORMALDEHYDE"
+  - id: 9
+    name: "FREON"
+  - id: 10
+    name: "H2S"
+  - id: 11
+    name: "HYDROGEN"
+  - id: 12
+    name: "LPG"
+  - id: 13
+    name: "METHANE"
+  - id: 14
+    name: "NH3"
+  - id: 15
+    name: "NO2"
+  - id: 16
+    name: "NOX"
+  - id: 17
+    name: "PROPANE"
+  - id: 18
+    name: "VOC"
+
+# ============================================================================
+# GAS LABELS - 气体分类标签
+# ============================================================================
+gas_labels:
+  # Common gases
+  - id: 0
+    name: "UNKNOWN"
+  - id: 1
+    name: "CO"
+    description: "Carbon monoxide"
+  - id: 2
+    name: "ETHANOL"
+    description: "Ethanol / Ethyl alcohol (Ea)"
+  - id: 3
+    name: "ETHYLENE"
+    description: "Ethylene (C2H4) (Ey)"
+  - id: 4
+    name: "METHANE"
+    description: "Methane (CH4) (Me)"
+  - id: 5
+    name: "AMMONIA"
+    description: "Ammonia (NH3)"
+  - id: 6
+    name: "ACETONE"
+    description: "Acetone"
+  - id: 7
+    name: "TOLUENE"
+    description: "Toluene"
+  - id: 8
+    name: "BENZENE"
+    description: "Benzene"
+  - id: 9
+    name: "FORMALDEHYDE"
+    description: "Formaldehyde"
+  - id: 10
+    name: "HYDROGEN"
+    description: "Hydrogen (H2)"
+  - id: 11
+    name: "PROPANE"
+    description: "Propane"
+  - id: 12
+    name: "BUTANE"
+    description: "Butane"
+  - id: 13
+    name: "NO2"
+    description: "Nitrogen dioxide"
+  - id: 14
+    name: "H2S"
+    description: "Hydrogen sulfide"
+  # Alcohols (for QCM dataset)
+  - id: 15
+    name: "ISOPROPANOL"
+    description: "2-propanol / Isopropanol"
+  - id: 16
+    name: "PROPANOL"
+    description: "1-Propanol"
+  - id: 17
+    name: "OCTANOL"
+    description: "1-Octanol"
+  - id: 18
+    name: "BUTANOL"
+    description: "2-Butanol"
+  - id: 19
+    name: "ISOBUTANOL"
+    description: "1-Isobutanol"
+  # VOCs
+  - id: 20
+    name: "ETHYL_ACETATE"
+    description: "Ethyl acetate"
+  - id: 21
+    name: "N_HEXANE"
+    description: "n-Hexane"
+  - id: 22
+    name: "ACETALDEHYDE"
+    description: "Acetaldehyde"
+  # Mixtures
+  - id: 23
+    name: "MIXTURE_ETHYLENE_CO"
+    description: "Ethylene + CO mixture"
+  - id: 24
+    name: "MIXTURE_ETHYLENE_METHANE"
+    description: "Ethylene + Methane mixture"
+  - id: 25
+    name: "MIXTURE_ACETONE_ETHANOL"
+    description: "Acetone + Ethanol mixture"
+  - id: 26
+    name: "BACKGROUND"
+    description: "Clean air / no gas"
+
+# ============================================================================
+# DATASET LABEL MAPPINGS - 数据集本地标签到全局标签映射
+# ============================================================================
+# Maps local dataset labels to global gas labels
+
+gas_label_mappings:
+  twin_gas_sensor_arrays:
+    # Local: 0=Ea(Ethanol), 1=CO, 2=Ey(Ethylene), 3=Me(Methane)
+    0: "ETHANOL"
+    1: "CO"
+    2: "ETHYLENE"
+    3: "METHANE"
+
+  gas_sensor_array_under_dynamic_gas_mixtures:
+    # Local: 0=Ethylene+CO, 1=Ethylene+Methane
+    0: "MIXTURE_ETHYLENE_CO"
+    1: "MIXTURE_ETHYLENE_METHANE"
+
+  gas_sensor_array_exposed_to_turbulent_gas_mixtures:
+    # Classification by second_gas: 0=Methane, 1=CO
+    0: "MIXTURE_ETHYLENE_METHANE"
+    1: "MIXTURE_ETHYLENE_CO"
+
+  gas_sensor_array_low_concentration:
+    # Local: 0=ethanol, 1=acetone, 2=toluene, 3=ethyl_acetate, 4=isopropanol, 5=n_hexane
+    0: "ETHANOL"
+    1: "ACETONE"
+    2: "TOLUENE"
+    3: "ETHYL_ACETATE"
+    4: "ISOPROPANOL"
+    5: "N_HEXANE"
+
+  gas_sensor_array_under_flow_modulation:
+    # Local: 0=air, 1=acetone, 2=ethanol, 3=mixture
+    0: "BACKGROUND"
+    1: "ACETONE"
+    2: "ETHANOL"
+    3: "MIXTURE_ACETONE_ETHANOL"
+
+  alcohol_qcm_sensor_dataset:
+    # Local: 0=1-octanol, 1=1-propanol, 2=2-butanol, 3=2-propanol, 4=1-isobutanol
+    0: "OCTANOL"
+    1: "PROPANOL"
+    2: "BUTANOL"
+    3: "ISOPROPANOL"
+    4: "ISOBUTANOL"
+
+  gas_sensor_array_drift_dataset_at_different_concentrations:
+    # Local: 0=Ethanol, 1=Ethylene, 2=Ammonia, 3=Acetaldehyde, 4=Acetone, 5=Toluene
+    0: "ETHANOL"
+    1: "ETHYLENE"
+    2: "AMMONIA"
+    3: "ACETALDEHYDE"
+    4: "ACETONE"
+    5: "TOLUENE"
+
+# ============================================================================
+# ACTIVITY LABELS - 活动识别标签
+# ============================================================================
+activity_labels:
+  - id: 0
+    name: "UNKNOWN"
+  - id: 1
+    name: "BACKGROUND"
+    description: "Normal background"
+  - id: 2
+    name: "WINE"
+    description: "Wine opening/pouring"
+  - id: 3
+    name: "BANANA"
+    description: "Banana presence"
+  - id: 4
+    name: "LEMON"
+    description: "Lemon presence"
+  - id: 5
+    name: "ONION"
+    description: "Onion cutting"
+  - id: 6
+    name: "GARLIC"
+    description: "Garlic presence"
+  - id: 7
+    name: "COOKING"
+    description: "General cooking activity"
+  - id: 8
+    name: "COFFEE"
+    description: "Coffee brewing"
+
+# ============================================================================
+# INGREDIENT LABELS - 食材标签 (SmellNet 50 classes)
+# ============================================================================
+ingredient_labels:
+  # Nuts (1-10)
+  - id: 0
+    name: "UNKNOWN"
+  - id: 1
+    name: "ALLSPICE"
+    category: "nuts"
+  - id: 2
+    name: "ALMOND"
+    category: "nuts"
+  - id: 3
+    name: "BRAZIL_NUT"
+    category: "nuts"
+  - id: 4
+    name: "CASHEW"
+    category: "nuts"
+  - id: 5
+    name: "CHESTNUT"
+    category: "nuts"
+  - id: 6
+    name: "HAZELNUT"
+    category: "nuts"
+  - id: 7
+    name: "MACADAMIA"
+    category: "nuts"
+  - id: 8
+    name: "PECAN"
+    category: "nuts"
+  - id: 9
+    name: "PISTACHIO"
+    category: "nuts"
+  - id: 10
+    name: "WALNUT"
+    category: "nuts"
+  # Spices (11-20)
+  - id: 11
+    name: "ANGELICA"
+    category: "spices"
+  - id: 12
+    name: "CARDAMOM"
+    category: "spices"
+  - id: 13
+    name: "CINNAMON"
+    category: "spices"
+  - id: 14
+    name: "CLOVE"
+    category: "spices"
+  - id: 15
+    name: "CORIANDER"
+    category: "spices"
+  - id: 16
+    name: "CUMIN"
+    category: "spices"
+  - id: 17
+    name: "GINGER"
+    category: "spices"
+  - id: 18
+    name: "NUTMEG"
+    category: "spices"
+  - id: 19
+    name: "PEPPER"
+    category: "spices"
+  - id: 20
+    name: "STAR_ANISE"
+    category: "spices"
+  # Herbs (21-30)
+  - id: 21
+    name: "BASIL"
+    category: "herbs"
+  - id: 22
+    name: "CHIVE"
+    category: "herbs"
+  - id: 23
+    name: "DILL"
+    category: "herbs"
+  - id: 24
+    name: "MINT"
+    category: "herbs"
+  - id: 25
+    name: "OREGANO"
+    category: "herbs"
+  - id: 26
+    name: "PARSLEY"
+    category: "herbs"
+  - id: 27
+    name: "ROSEMARY"
+    category: "herbs"
+  - id: 28
+    name: "SAGE"
+    category: "herbs"
+  - id: 29
+    name: "TARRAGON"
+    category: "herbs"
+  - id: 30
+    name: "THYME"
+    category: "herbs"
+  # Fruits (31-40)
+  - id: 31
+    name: "APPLE"
+    category: "fruits"
+  - id: 32
+    name: "BANANA"
+    category: "fruits"
+  - id: 33
+    name: "GRAPE"
+    category: "fruits"
+  - id: 34
+    name: "KIWI"
+    category: "fruits"
+  - id: 35
+    name: "LEMON"
+    category: "fruits"
+  - id: 36
+    name: "MANGO"
+    category: "fruits"
+  - id: 37
+    name: "ORANGE"
+    category: "fruits"
+  - id: 38
+    name: "PEACH"
+    category: "fruits"
+  - id: 39
+    name: "PEAR"
+    category: "fruits"
+  - id: 40
+    name: "STRAWBERRY"
+    category: "fruits"
+  # Vegetables (41-50)
+  - id: 41
+    name: "ASPARAGUS"
+    category: "vegetables"
+  - id: 42
+    name: "AVOCADO"
+    category: "vegetables"
+  - id: 43
+    name: "BROCCOLI"
+    category: "vegetables"
+  - id: 44
+    name: "BRUSSEL_SPROUTS"
+    category: "vegetables"
+  - id: 45
+    name: "CABBAGE"
+    category: "vegetables"
+  - id: 46
+    name: "CARROT"
+    category: "vegetables"
+  - id: 47
+    name: "CELERY"
+    category: "vegetables"
+  - id: 48
+    name: "CUCUMBER"
+    category: "vegetables"
+  - id: 49
+    name: "SPINACH"
+    category: "vegetables"
+  - id: 50
+    name: "TOMATO"
+    category: "vegetables"
