@@ -23,8 +23,6 @@ import pandas as pd
 # Import all dataset classes
 from enose_uci_dataset.datasets import (
     DATASETS,
-    AlcoholQCMSensor,
-    GasSensorArrayDrift,
     GasSensorDynamic,
     GasSensorFlowModulation,
     GasSensorLowConcentration,
@@ -55,9 +53,7 @@ except ImportError:
 DATA_ROOT = Path(os.environ.get("ENOSE_DATA_ROOT", "./.cache")).resolve()
 
 # Datasets to test with download (smaller ones for CI)
-DOWNLOAD_TEST_DATASETS = [
-    "alcohol_qcm_sensor_dataset",  # ~15KB
-]
+DOWNLOAD_TEST_DATASETS = []  # No small datasets for CI testing
 
 
 def has_dataset(name: str, root: Path = DATA_ROOT) -> bool:
@@ -105,8 +101,7 @@ class TestDatasetRegistry(TestCase):
         expected = [
             "twin_gas_sensor_arrays",
             "gas_sensors_for_home_activity_monitoring",
-            "alcohol_qcm_sensor_dataset",
-            "gas_sensor_array_drift_dataset_at_different_concentrations",
+            "gas_sensor_array_exposed_to_turbulent_gas_mixtures",
         ]
         for name in expected:
             self.assertIn(name, datasets)
@@ -166,22 +161,6 @@ class TestDatasetClassAttributes(TestCase):
         self.assertEqual(TwinGasSensorArrays.name, "twin_gas_sensor_arrays")
         self.assertIn("Ea", TwinGasSensorArrays.gas_to_idx)
         self.assertIn("CO", TwinGasSensorArrays.gas_to_idx)
-
-    def test_gas_sensor_drift_attributes(self):
-        """Test GasSensorArrayDrift class attributes."""
-        self.assertEqual(
-            GasSensorArrayDrift.name,
-            "gas_sensor_array_drift_dataset_at_different_concentrations"
-        )
-        self.assertEqual(len(GasSensorArrayDrift.classes), 6)
-        self.assertIn("Ethanol", GasSensorArrayDrift.classes)
-        self.assertIn("Ammonia", GasSensorArrayDrift.classes)
-
-    def test_alcohol_qcm_attributes(self):
-        """Test AlcoholQCMSensor class attributes."""
-        self.assertEqual(AlcoholQCMSensor.name, "alcohol_qcm_sensor_dataset")
-        self.assertEqual(len(AlcoholQCMSensor.classes), 5)
-        self.assertEqual(len(AlcoholQCMSensor.sensors), 5)
 
     def test_gas_sensor_turbulent_attributes(self):
         """Test GasSensorTurbulent class attributes."""
@@ -280,45 +259,13 @@ class TestDownloadProcessCache(TestCase):
         cls.test_root = DATA_ROOT
         cls.test_root.mkdir(parents=True, exist_ok=True)
 
-    def test_download_alcohol_qcm(self):
-        """Test downloading AlcoholQCMSensor dataset."""
-        ds = AlcoholQCMSensor(str(self.test_root), download=True, cache=True)
+    @skipIf(not has_dataset("twin_gas_sensor_arrays"), "Dataset not available")
+    def test_download_twin_gas(self):
+        """Test downloading TwinGasSensorArrays dataset."""
+        ds = TwinGasSensorArrays(str(self.test_root), download=False)
         self.assertGreater(len(ds), 0)
         # Verify raw data exists
         self.assertTrue(ds.raw_dir.exists())
-
-    def test_cache_creation_alcohol_qcm(self):
-        """Test that cache is created after processing."""
-        ds = AlcoholQCMSensor(str(self.test_root), download=True, cache=True)
-        # Access data to trigger processing
-        _ = ds[0]
-        # Cache should exist
-        self.assertTrue(ds.cache_dir.exists())
-
-    def test_cache_reload_alcohol_qcm(self):
-        """Test that data can be loaded from cache."""
-        # First load creates cache
-        ds1 = AlcoholQCMSensor(str(self.test_root), download=True, cache=True)
-        len1 = len(ds1)
-        data1, target1 = ds1[0]
-        
-        # Second load should use cache
-        ds2 = AlcoholQCMSensor(str(self.test_root), download=False, cache=True)
-        len2 = len(ds2)
-        data2, target2 = ds2[0]
-        
-        self.assertEqual(len1, len2)
-        np.testing.assert_array_equal(data1, data2)
-
-    def test_dataset_iteration(self):
-        """Test full dataset iteration."""
-        ds = AlcoholQCMSensor(str(self.test_root), download=True, cache=True)
-        count = 0
-        for data, target in ds:
-            self.assertIsInstance(data, np.ndarray)
-            self.assertIsInstance(target, dict)
-            count += 1
-        self.assertEqual(count, len(ds))
 
 
 # =============================================================================
@@ -326,6 +273,7 @@ class TestDownloadProcessCache(TestCase):
 # =============================================================================
 
 @skipIf(not HAS_TORCH, "PyTorch not installed")
+@skipIf(not has_dataset("twin_gas_sensor_arrays"), "Dataset not available")
 class TestPyTorchDataLoader(TestCase):
     """Test PyTorch DataLoader integration."""
 
@@ -334,8 +282,8 @@ class TestPyTorchDataLoader(TestCase):
         """Set up test fixtures."""
         cls.test_root = DATA_ROOT
         cls.test_root.mkdir(parents=True, exist_ok=True)
-        # Ensure dataset is downloaded
-        cls.dataset = AlcoholQCMSensor(str(cls.test_root), download=True, cache=True)
+        # Use TwinGasSensorArrays instead
+        cls.dataset = TwinGasSensorArrays(str(cls.test_root), download=False)
 
     def test_dataloader_basic(self):
         """Test basic DataLoader iteration."""
@@ -444,58 +392,6 @@ class TestTwinGasSensorArraysWithData(TestCase):
             print(f"  批次数据类型: {type(batch_data).__name__}")
             print(f"  批次大小: {len(batch_targets)}")
             self.assertIsInstance(batch_targets, list)
-            break
-
-
-@skipIf(not has_dataset("gas_sensor_array_drift_dataset_at_different_concentrations"), "Dataset not available")
-class TestGasSensorArrayDriftWithData(TestCase):
-    """Tests for GasSensorArrayDrift with actual data."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.dataset = GasSensorArrayDrift(str(DATA_ROOT), download=False, cache=True)
-
-    def test_len(self):
-        """Test dataset length (should have ~13910 samples)."""
-        print(f"\n[GasSensorArrayDrift] 样本数: {len(self.dataset)}")
-        self.assertGreater(len(self.dataset), 10000)
-
-    def test_getitem(self):
-        """Test __getitem__ returns valid data."""
-        data, target = self.dataset[0]
-        print(f"\n[GasSensorArrayDrift] 样本0:")
-        print(f"  数据形状: {data.shape}")
-        print(f"  标签: {target}")
-        self.assertIsInstance(data, np.ndarray)
-        self.assertEqual(data.shape, (16, 8))  # 16 sensors, 8 features
-        self.assertIn("gas", target)
-        self.assertIn("ppm", target)
-        self.assertIn("batch", target)
-
-    def test_targets(self):
-        """Test targets property."""
-        targets = self.dataset.targets
-        self.assertEqual(len(targets), len(self.dataset))
-        self.assertTrue(all(0 <= t < 6 for t in targets))
-
-    def test_cache_exists(self):
-        """Test that cache was created."""
-        self.assertTrue(self.dataset.cache_dir.exists())
-
-    @skipIf(not HAS_TORCH, "PyTorch not installed")
-    def test_dataloader(self):
-        """Test PyTorch DataLoader integration."""
-        loader = DataLoader(
-            self.dataset,
-            batch_size=32,
-            shuffle=True,
-            collate_fn=numpy_collate_fn,
-        )
-        for batch_data, batch_targets in loader:
-            print(f"\n[GasSensorArrayDrift] DataLoader 批次:")
-            print(f"  批次形状: {batch_data.shape if isinstance(batch_data, np.ndarray) else 'list'}")
-            if isinstance(batch_data, np.ndarray):
-                self.assertEqual(batch_data.shape[1:], (16, 8))
             break
 
 
@@ -702,44 +598,6 @@ class TestGasSensorLowConcentrationWithData(TestCase):
             print(f"  批次形状: {batch_data.shape}")
             self.assertIsInstance(batch_data, np.ndarray)
             self.assertEqual(batch_data.shape[1:], (10, 900))
-            break
-
-
-@skipIf(not has_dataset("alcohol_qcm_sensor_dataset"), "Dataset not available")
-class TestAlcoholQCMSensorWithData(TestCase):
-    """Tests for AlcoholQCMSensor with actual data."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.dataset = AlcoholQCMSensor(str(DATA_ROOT), download=False)
-
-    def test_len(self):
-        """Test dataset length."""
-        print(f"\n[AlcoholQCMSensor] 样本数: {len(self.dataset)}")
-        self.assertGreater(len(self.dataset), 0)
-
-    def test_getitem(self):
-        """Test __getitem__ returns valid data."""
-        data, target = self.dataset[0]
-        print(f"\n[AlcoholQCMSensor] 样本0:")
-        print(f"  数据形状: {data.shape}")
-        print(f"  标签: {target}")
-        self.assertIsInstance(data, np.ndarray)
-        self.assertIn("alcohol", target)
-
-    @skipIf(not HAS_TORCH, "PyTorch not installed")
-    def test_dataloader(self):
-        """Test PyTorch DataLoader integration."""
-        loader = DataLoader(
-            self.dataset,
-            batch_size=8,
-            shuffle=True,
-            collate_fn=numpy_collate_fn,
-        )
-        for batch_data, batch_targets in loader:
-            print(f"\n[AlcoholQCMSensor] DataLoader 批次:")
-            print(f"  批次形状: {batch_data.shape}")
-            self.assertIsInstance(batch_data, np.ndarray)
             break
 
 

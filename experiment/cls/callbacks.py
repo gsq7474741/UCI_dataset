@@ -4,12 +4,88 @@ Includes visualization callback that triggers on best checkpoint saves.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import torch
 import lightning as L
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint
+
+
+def create_visualization_gif(
+    vis_dir: Path,
+    pattern: str = "class_comparison_epoch*.png",
+    output_name: str = "class_comparison_evolution.gif",
+    duration: int = 500,  # ms per frame
+) -> Optional[Path]:
+    """Create a GIF from a series of visualization images.
+    
+    Args:
+        vis_dir: Directory containing visualization images
+        pattern: Glob pattern to match image files
+        output_name: Output GIF filename
+        duration: Duration per frame in milliseconds
+        
+    Returns:
+        Path to generated GIF or None if failed
+    """
+    try:
+        from PIL import Image
+        
+        # Find all matching images
+        images_paths = sorted(vis_dir.glob(pattern))
+        
+        if len(images_paths) < 2:
+            print(f"[GIF] Not enough images to create GIF (found {len(images_paths)})")
+            return None
+        
+        # Sort by epoch number
+        def extract_epoch(path: Path) -> int:
+            match = re.search(r'epoch(\d+)', path.stem)
+            return int(match.group(1)) if match else 0
+        
+        images_paths = sorted(images_paths, key=extract_epoch)
+        
+        # Load images
+        images = []
+        for path in images_paths:
+            img = Image.open(path)
+            # Convert to RGB if necessary (for consistency)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            images.append(img)
+        
+        # Add black end frame (1 second = 1000ms, use 2 frames at 500ms each)
+        if len(images) > 0:
+            last_img = images[-1]
+            black_frame = Image.new('RGB', last_img.size, (0, 0, 0))
+            # Add 2 black frames for 1 second total pause
+            images.append(black_frame)
+            images.append(black_frame)
+        
+        # Build duration list: normal frames + longer pause for black frames
+        durations = [duration] * (len(images) - 2) + [500, 500]  # 1s total for black
+        
+        # Save as GIF
+        output_path = vis_dir / output_name
+        images[0].save(
+            output_path,
+            save_all=True,
+            append_images=images[1:],
+            duration=durations,
+            loop=0  # 0 = infinite loop
+        )
+        
+        print(f"[GIF] Created {output_path} with {len(images)} frames (incl. end marker)")
+        return output_path
+        
+    except ImportError:
+        print("[GIF] PIL not installed, skipping GIF generation")
+        return None
+    except Exception as e:
+        print(f"[GIF] Error creating GIF: {e}")
+        return None
 
 
 class VisualizationCallback(Callback):
@@ -145,6 +221,30 @@ class VisualizationCallback(Callback):
             print(f"[Visualization] Error generating visualizations: {e}")
             import traceback
             traceback.print_exc()
+    
+    def on_fit_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
+        """Generate GIF from all visualizations at end of training."""
+        print("\n[Visualization] Generating evolution GIFs...")
+        
+        # Generate GIF for class_comparison images
+        gif_path = create_visualization_gif(
+            self.output_dir,
+            pattern="class_comparison_epoch*.png",
+            output_name="class_comparison_evolution.gif",
+            duration=500,  # 500ms per frame
+        )
+        if gif_path:
+            print(f"[Visualization] Class comparison GIF: {gif_path}")
+        
+        # Generate GIF for single_sample_cam images
+        gif_path2 = create_visualization_gif(
+            self.output_dir,
+            pattern="single_sample_cam_epoch*.png",
+            output_name="single_sample_cam_evolution.gif",
+            duration=500,  # 500ms per frame
+        )
+        if gif_path2:
+            print(f"[Visualization] Single sample CAM GIF: {gif_path2}")
 
 
 class TestOnBestCallback(Callback):

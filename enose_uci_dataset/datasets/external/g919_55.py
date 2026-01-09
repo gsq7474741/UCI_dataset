@@ -155,11 +155,37 @@ _SPELLING_FIXES = {
 def _find_odor_label(filename: str) -> Tuple[Optional[int], Optional[str], Optional[str]]:
     """Find odor label from filename.
     
+    Filename format: {odor_name}_{repetition}_{concentration}.csv
+    e.g., "Floridawater_1_high.csv", "Chanel Coco Mademoiselle_2_low.csv"
+    
     Returns:
         Tuple of (odor_idx, odor_name, category) or (None, None, None) if not found
     """
     # Extract base name without extension
     base = Path(filename).stem
+    
+    # Remove _interp suffix if present
+    if base.endswith("_interp"):
+        base = base[:-7]
+    
+    # New format: {odor_name}_{repetition}_{concentration}
+    # Remove trailing _high, _low, _mid and repetition number
+    parts = base.rsplit("_", 2)  # Split from right, max 2 splits
+    if len(parts) >= 3:
+        # Check if last part is concentration (high/low/mid)
+        if parts[-1].lower() in ("high", "low", "mid"):
+            # Check if second-to-last is a number (repetition)
+            if parts[-2].isdigit():
+                # Reconstruct odor name from remaining parts
+                base = parts[0]
+            else:
+                # Maybe format is {name}_{concentration} without repetition
+                base = "_".join(parts[:-1])
+    elif len(parts) == 2:
+        # Format might be {name}_{concentration}
+        if parts[-1].lower() in ("high", "low", "mid"):
+            base = parts[0]
+    
     normalized = _normalize_odor_name(base)
     
     # Apply spelling fixes
@@ -243,10 +269,14 @@ class G919SensorDataset(BaseEnoseDataset):
     
     @property
     def dataset_dir(self) -> Path:
-        """Override to support local_path."""
+        """Override to support local_path.
+        
+        Default structure: root/g919_55/single/{category}/{category}_train|test/
+        """
         if self._local_path is not None:
             return self._local_path
-        return self.root / self.name
+        # Data is in 'single' subdirectory (not 'raw')
+        return self.root / self.name / "single"
     
     def download(self) -> None:
         """Not supported - this is a local-only dataset."""
@@ -295,6 +325,13 @@ class G919SensorDataset(BaseEnoseDataset):
                 for csv_path in sorted(subdir.glob("*.csv")):
                     # Skip processed files
                     if csv_path.name.startswith("processed_"):
+                        continue
+                    
+                    # Only load files with _high, _low, _mid suffix (concentration segments)
+                    stem = csv_path.stem
+                    # Remove _interp if present for checking
+                    check_stem = stem[:-7] if stem.endswith("_interp") else stem
+                    if not any(check_stem.endswith(f"_{conc}") for conc in ("high", "low", "mid")):
                         continue
                     
                     odor_idx, odor_name, odor_category = _find_odor_label(csv_path.name)

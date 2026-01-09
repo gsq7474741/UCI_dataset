@@ -59,6 +59,7 @@ DATASETS=(
   "alcohol_qcm_sensor_dataset"
   "gas_sensor_array_exposed_to_turbulent_gas_mixtures"
   "gas_sensor_array_under_dynamic_gas_mixtures"
+  "g919_55"
 )
 
 # ============================================================

@@ -251,18 +251,91 @@ class TCNEncoder(nn.Module):
         return x
 
 
-class ChannelWiseCNN1DEncoder(nn.Module):
-    """Channel-wise 1D CNN encoder that preserves input channel information.
+class SEBlock(nn.Module):
+    """Squeeze-and-Excitation block for channel attention.
     
-    Key design for interpretability:
-    - Each input channel is processed INDEPENDENTLY (no mixing)
-    - Uses grouped convolutions to maintain channel separation
-    - Produces per-channel features and CAM weights
+    Adaptively recalibrates channel-wise feature responses.
+    Does NOT mix temporal features, only scales channels.
+    """
+    
+    def __init__(self, channels: int, reduction: int = 4):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.GELU(),  # Changed from ReLU to GELU to avoid dead neurons/gradient truncation
+            nn.Linear(channels // reduction, channels, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, c, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1)
+        return x * y.expand_as(x)
+
+
+class MultiScaleGroupedBlock(nn.Module):
+    """Multi-scale grouped convolution block.
+    
+    Uses multiple kernel sizes to capture different temporal patterns
+    while keeping channels separate (grouped conv).
+    """
+    
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_sizes: List[int] = [3, 5, 7],
+        stride: int = 1,
+        dropout: float = 0.1,
+        groups: int = 1,
+    ):
+        super().__init__()
+        self.branches = nn.ModuleList()
+        
+        # Ensure out_channels is divisible by number of branches
+        assert out_channels % len(kernel_sizes) == 0
+        branch_channels = out_channels // len(kernel_sizes)
+        
+        # Each branch uses a different kernel size
+        for k in kernel_sizes:
+            padding = k // 2
+            self.branches.append(nn.Sequential(
+                nn.Conv1d(in_channels, branch_channels, k, stride, padding, groups=groups),
+                nn.BatchNorm1d(branch_channels),
+                nn.GELU(),
+                nn.Dropout(dropout)
+            ))
+            
+        # 1x1 conv to fuse branches (keeping groups to preserve channel independence)
+        self.fuse = nn.Sequential(
+            nn.Conv1d(out_channels, out_channels, 1, groups=groups),
+            nn.BatchNorm1d(out_channels),
+            nn.GELU()
+        )
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Apply each branch
+        outs = [branch(x) for branch in self.branches]
+        # Concatenate along channel dimension
+        out = torch.cat(outs, dim=1)
+        # Fuse
+        return self.fuse(out)
+
+
+class ChannelWiseCNN1DEncoder(nn.Module):
+    """Channel-wise 1D CNN encoder with Multi-scale + SE.
+    
+    Key design for interpretability AND performance:
+    1. Grouped convolutions: Preserve channel independence deep into the network.
+    2. Multi-scale kernels: Capture short & long-term patterns per channel.
+    3. SE Block: Allow channel interaction via importance scaling (not mixing waveforms).
     
     Architecture:
     - Per-channel feature extraction (grouped conv)
-    - Channel-wise temporal processing
-    - Attention-based aggregation (preserves channel attribution)
+    - Stack of MultiScaleGroupedBlock + SEBlock
+    - Final aggregation with learned channel weights
     """
     
     def __init__(
@@ -270,7 +343,7 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         in_channels: int = 8,
         hidden_dim: int = 64,
         num_layers: int = 4,
-        kernel_size: int = 7,
+        kernel_size: int = 7,  # Base kernel size, will use [k-2, k, k+2]
         dropout: float = 0.1,
     ):
         super().__init__()
@@ -282,23 +355,52 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         assert self.per_channel_dim * in_channels == hidden_dim, \
             f"hidden_dim ({hidden_dim}) must be divisible by in_channels ({in_channels})"
         
-        # Per-channel input projection (grouped conv keeps channels separate)
+        # Multi-scale kernels
+        k_mid = kernel_size
+        k_small = max(3, k_mid - 2)
+        k_large = k_mid + 2
+        kernel_sizes = [k_small, k_mid, k_large]
+        
+        # Per-channel input projection
         self.input_proj = nn.Sequential(
             nn.Conv1d(in_channels, hidden_dim, kernel_size=1, groups=in_channels),
             nn.BatchNorm1d(hidden_dim),
             nn.GELU(),
         )
         
-        # Per-channel temporal processing (grouped convolutions)
-        layers = []
+        # Encoder layers
+        self.layers = nn.ModuleList()
         for i in range(num_layers):
             stride = 2 if i % 2 == 1 and i > 0 else 1
-            layers.append(self._make_grouped_block(
-                hidden_dim, hidden_dim, kernel_size, stride, dropout, in_channels
-            ))
-        self.layers = nn.ModuleList(layers)
+            
+            # 1. Multi-scale grouped convolution
+            # Constraint: branch_channels must be divisible by groups (in_channels)
+            # branch_channels = hidden_dim / num_scales
+            # So (hidden_dim / num_scales) % in_channels == 0
+            # This implies (hidden_dim / in_channels) % num_scales == 0
+            # i.e., per_channel_dim % num_scales == 0
+            
+            if self.per_channel_dim % 3 == 0:
+                ks = kernel_sizes  # [k-2, k, k+2]
+            elif self.per_channel_dim % 2 == 0:
+                ks = [kernel_sizes[0], kernel_sizes[-1]]  # [k-2, k+2]
+            else:
+                ks = [kernel_size] # Fallback to single scale
+            
+            block = nn.Sequential(
+                MultiScaleGroupedBlock(
+                    hidden_dim, hidden_dim, 
+                    kernel_sizes=ks, 
+                    stride=stride, 
+                    dropout=dropout, 
+                    groups=in_channels # Crucial: Keep channels separate!
+                ),
+                # 2. SE Block for channel interaction (re-weighting)
+                SEBlock(hidden_dim, reduction=4)
+            )
+            self.layers.append(block)
         
-        # Channel attention weights (for interpretability)
+        # Final channel attention (for aggregation)
         self.channel_attention = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
@@ -311,19 +413,6 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         # Store intermediate features for CAM
         self._feature_maps = None
         self._channel_weights = None
-    
-    def _make_grouped_block(self, in_ch, out_ch, kernel_size, stride, dropout, groups):
-        """Create a grouped convolutional block."""
-        padding = kernel_size // 2
-        return nn.Sequential(
-            nn.Conv1d(in_ch, out_ch, kernel_size, stride, padding, groups=groups),
-            nn.BatchNorm1d(out_ch),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Conv1d(out_ch, out_ch, kernel_size, 1, padding, groups=groups),
-            nn.BatchNorm1d(out_ch),
-            nn.GELU(),
-        )
     
     def forward(self, x: torch.Tensor, return_cam_features: bool = False) -> torch.Tensor:
         """
@@ -339,7 +428,7 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         # Per-channel projection
         x = self.input_proj(x)  # [B, hidden_dim, T]
         
-        # Apply layers (no residual to avoid size mismatch issues)
+        # Apply layers
         for layer in self.layers:
             x = layer(x)
         
@@ -354,7 +443,8 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         T_out = x.shape[-1]
         x_reshaped = x.view(B, self.in_channels, self.per_channel_dim, T_out)
         
-        # Apply channel attention
+        # Apply channel attention (Aggregation)
+        # weight: [B, C] -> [B, C, 1, 1]
         x_weighted = x_reshaped * channel_weights.unsqueeze(-1).unsqueeze(-1)
         
         # Flatten back and global pool
@@ -366,15 +456,7 @@ class ChannelWiseCNN1DEncoder(nn.Module):
         return pooled
     
     def get_channel_cam(self, x: torch.Tensor, class_weights: torch.Tensor) -> torch.Tensor:
-        """Compute per-channel CAM (Class Activation Map).
-        
-        Args:
-            x: [B, C, T] input tensor
-            class_weights: [hidden_dim, num_classes] classifier weights
-            
-        Returns:
-            [B, in_channels, T'] per-channel CAM
-        """
+        """Compute per-channel CAM (Class Activation Map)."""
         B, C, T = x.shape
         
         # Forward to get features
@@ -515,11 +597,16 @@ class CNN1DClassifier(L.LightningModule):
         # Forward pass
         if self.channel_wise:
             pooled, features, channel_weights = self.encoder(x, return_cam_features=True)
+            # We need gradients for features to compute Grad-CAM
+            features.retain_grad()
         else:
             # For non-channel-wise, compute gradient-based CAM
             features = self.encoder.input_proj(x)
             for layer in self.encoder.layers:
                 features = layer(features)
+            # Need gradients for features
+            features.retain_grad()
+            
             pooled = features.mean(dim=-1)
             channel_weights = torch.ones(B, self.in_channels, device=x.device) / self.in_channels
         
@@ -540,34 +627,49 @@ class CNN1DClassifier(L.LightningModule):
         self.zero_grad()
         score.backward(retain_graph=True)
         
-        # Get gradients of features
-        if x.grad is not None:
-            grad = x.grad  # [B, C, T]
-        else:
-            grad = torch.ones_like(x)
-        
         # Compute per-channel CAM
         T_out = features.shape[-1]
         
         if self.channel_wise:
-            # Reshape features to per-channel: [B, in_channels, per_channel_dim, T']
+            # Grouped Grad-CAM
+            # features: [B, hidden_dim, T']
+            # grads: [B, hidden_dim, T']
+            grads = features.grad
+            
+            # Reshape to [B, InChannels, PerChDim, T']
             per_ch_dim = self.encoder.per_channel_dim
             features_per_ch = features.view(B, self.in_channels, per_ch_dim, T_out)
+            grads_per_ch = grads.view(B, self.in_channels, per_ch_dim, T_out)
             
-            # Weight by channel attention and average over feature dim
-            cam = features_per_ch.mean(dim=2)  # [B, in_channels, T']
+            # Compute weights: GAP over time [B, InChannels, PerChDim, 1]
+            weights = grads_per_ch.mean(dim=3, keepdim=True)
+            
+            # Weighted combination: Sum over sub-features (PerChDim)
+            # [B, InChannels, T']
+            cam = (weights * features_per_ch).sum(dim=2)
+            
+            # Optionally modulate by SE attention weights (Channel Attention)
+            # This combines Gradient importance (Class-specific) with SE importance (Data-specific)
             cam = cam * channel_weights.unsqueeze(-1)
-        else:
-            # For regular encoder, distribute features back to input channels
-            # Use input gradients as channel weights
-            input_importance = grad.abs().mean(dim=-1)  # [B, C]
-            input_importance = input_importance / (input_importance.sum(dim=-1, keepdim=True) + 1e-8)
             
-            # Create pseudo per-channel CAM from global features
-            global_cam = features.mean(dim=1)  # [B, T']
-            cam = global_cam.unsqueeze(1).expand(-1, self.in_channels, -1)  # [B, C, T']
-            cam = cam * input_importance.unsqueeze(-1)
-            channel_weights = input_importance
+        else:
+            # Standard Grad-CAM (Global)
+            grads = features.grad
+            weights = grads.mean(dim=2, keepdim=True) # [B, HiddenDim, 1]
+            
+            # Global CAM: [B, T']
+            global_cam = (weights * features).sum(dim=1)
+            
+            # For visualization, we simply expand to all channels 
+            # (since we don't have channel-specific mapping in standard mode)
+            cam = global_cam.unsqueeze(1).expand(-1, self.in_channels, -1) # [B, C, T']
+            
+            # Use Input Gradients for channel importance
+            if x.grad is not None:
+                input_importance = x.grad.abs().mean(dim=-1)
+                input_importance = input_importance / (input_importance.sum(dim=-1, keepdim=True) + 1e-8)
+                cam = cam * input_importance.unsqueeze(-1)
+                channel_weights = input_importance
         
         # Normalize CAM
         cam = F.relu(cam)

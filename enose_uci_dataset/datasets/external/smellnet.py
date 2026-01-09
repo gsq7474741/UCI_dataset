@@ -214,9 +214,16 @@ class SmellNet(BaseEnoseDataset):
     def data_dir(self) -> Path:
         """Get the data directory containing CSV files."""
         if self._smellnet_root is not None:
-            return self._smellnet_root / "data"
-        # 默认使用 {root}/smellnet/data
-        return self.dataset_dir / "data"
+            # Check if 'data' subdir exists, otherwise use root
+            if (self._smellnet_root / "data").exists():
+                return self._smellnet_root / "data"
+            return self._smellnet_root
+            
+        # Default behavior: check {root}/smellnet/data then {root}/smellnet
+        default_data = self.dataset_dir / "data"
+        if default_data.exists():
+            return default_data
+        return self.dataset_dir
     
     def _check_exists(self) -> bool:
         """Override to check the correct directory."""

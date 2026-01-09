@@ -15,6 +15,8 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend to prevent blocking
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.gridspec import GridSpec
@@ -142,13 +144,168 @@ def plot_gradcam_analysis(
             ax3.set_xlabel("Time Step")
     
     fig.suptitle(title, fontsize=14, fontweight='bold')
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass
     
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved: {save_path}")
     
     return fig
+
+
+def plot_single_sample_gradcam(
+    data: torch.Tensor,
+    labels: torch.Tensor,
+    cam_results: Dict[str, torch.Tensor],
+    class_names: List[str],
+    sample_indices: List[int],
+    num_channels: int = 8,
+    accuracy: Optional[float] = None,
+    save_path: Optional[str] = None,
+    epoch: int = 0,
+) -> plt.Figure:
+    """Plot Grad-CAM heatmap for individual samples (CV-style visualization).
+    
+    Args:
+        data: [N, C, T] input data
+        labels: [N] ground truth labels
+        cam_results: Dict from GradCAM1D with 'cam' and optionally 'channel_cam'
+        class_names: List of class names
+        sample_indices: List of sample indices to visualize
+        num_channels: Number of channels to display
+        accuracy: Optional accuracy to display in title
+        save_path: Path to save figure
+        epoch: Current epoch number
+        
+    Returns:
+        matplotlib Figure
+    """
+    from scipy.ndimage import gaussian_filter1d
+    
+    n_samples = len(sample_indices)
+    actual_channels = min(num_channels, data.shape[1])
+    
+    # Create figure: rows = samples, cols = channels
+    fig, axes = plt.subplots(n_samples, actual_channels, 
+                             figsize=(2.5 * actual_channels, 2 * n_samples))
+    if n_samples == 1:
+        axes = axes.reshape(1, -1)
+    if actual_channels == 1:
+        axes = axes.reshape(-1, 1)
+    
+    T = data.shape[-1]
+    has_channel_cam = 'channel_cam' in cam_results
+    
+    for row, sample_idx in enumerate(sample_indices):
+        if sample_idx >= len(data):
+            continue
+            
+        sample_data = data[sample_idx].cpu().numpy()  # [C, T]
+        sample_label = labels[sample_idx].item()
+        sample_pred = cam_results['pred'][sample_idx].item()
+        
+        # Get CAM for this sample
+        if has_channel_cam:
+            sample_cam = cam_results['channel_cam'][sample_idx].cpu().numpy()  # [C, T_cam]
+        else:
+            sample_cam = cam_results['cam'][sample_idx].cpu().numpy()  # [T_cam]
+            sample_cam = np.tile(sample_cam, (actual_channels, 1))  # [C, T_cam]
+        
+        is_correct = sample_label == sample_pred
+        
+        for ch in range(actual_channels):
+            ax = axes[row, ch]
+            
+            signal = sample_data[ch]  # [T]
+            cam = sample_cam[ch] if sample_cam.ndim > 1 else sample_cam  # [T_cam]
+            
+            # Interpolate CAM to signal length if needed
+            if len(cam) != T:
+                cam = np.interp(np.arange(T), np.linspace(0, T, len(cam)), cam)
+            
+            # Smooth CAM
+            cam_smooth = gaussian_filter1d(cam, sigma=T // 20)
+            cam_norm = (cam_smooth - cam_smooth.min()) / (cam_smooth.max() - cam_smooth.min() + 1e-8)
+            
+            # Plot signal
+            t = np.arange(T)
+            ax.plot(t, signal, 'k-', linewidth=0.8, alpha=0.9)
+            
+            # Overlay CAM as colored background
+            y_min, y_max = signal.min(), signal.max()
+            y_range = y_max - y_min
+            y_min -= y_range * 0.1
+            y_max += y_range * 0.1
+            
+            cam_2d = cam_norm.reshape(1, -1)
+            ax.imshow(cam_2d, aspect='auto', extent=[0, T, y_min, y_max],
+                     cmap='Reds', alpha=0.4, origin='lower', vmin=0, vmax=1)
+            
+            ax.set_xlim(0, T)
+            ax.set_ylim(y_min, y_max)
+            
+            # Labels
+            if row == 0:
+                ax.set_title(f'Ch{ch}', fontsize=9)
+            if ch == 0:
+                color = 'green' if is_correct else 'red'
+                true_name = class_names[sample_label] if sample_label < len(class_names) else f'Class{sample_label}'
+                pred_name = class_names[sample_pred] if sample_pred < len(class_names) else f'Class{sample_pred}'
+                # Truncate names
+                true_name = true_name[:12] + '..' if len(true_name) > 14 else true_name
+                pred_name = pred_name[:12] + '..' if len(pred_name) > 14 else pred_name
+                ax.set_ylabel(f'{true_name}\n→{pred_name}', fontsize=7, color=color)
+            
+            ax.tick_params(labelsize=6)
+            if row < n_samples - 1:
+                ax.set_xticklabels([])
+    
+    title = f'Single Sample Grad-CAM (Epoch {epoch})'
+    if accuracy is not None:
+        title += f' | Acc: {accuracy:.1%}'
+    fig.suptitle(title, fontsize=11)
+    
+    try:
+        plt.tight_layout()
+    except:
+        pass
+    
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Saved: {save_path}")
+    
+    return fig
+
+
+def select_fixed_samples(
+    labels: torch.Tensor,
+    num_classes: int = 12,
+    seed: int = 42,
+) -> List[int]:
+    """Select one sample per class for consistent visualization across epochs.
+    
+    Args:
+        labels: [N] ground truth labels
+        num_classes: Number of classes to select
+        seed: Random seed for reproducibility
+        
+    Returns:
+        List of sample indices (one per class)
+    """
+    np.random.seed(seed)
+    selected = []
+    
+    for c in range(min(num_classes, labels.max().item() + 1)):
+        mask = (labels == c).numpy()
+        indices = np.where(mask)[0]
+        if len(indices) > 0:
+            # Always pick the first one (deterministic)
+            selected.append(int(indices[0]))
+    
+    return selected
 
 
 def plot_class_comparison(
@@ -231,16 +388,54 @@ def plot_class_comparison(
         T_cam = len(class_channel_cams[0]) if class_channel_cams else T
         t_cam = np.arange(T_cam)
         
-        # Plot signals
+        # Compute average CAM across all classes for this channel (for heatmap overlay)
+        all_cams = np.array(class_channel_cams)  # [num_classes, T_cam]
+        avg_cam = all_cams.mean(axis=0)  # Average attention across classes
+        # Interpolate CAM to match signal length
+        if len(avg_cam) != T:
+            avg_cam_interp = np.interp(np.arange(T), np.linspace(0, T, len(avg_cam)), avg_cam)
+        else:
+            avg_cam_interp = avg_cam
+        # Smooth CAM to remove high-frequency noise (Gaussian filter)
+        from scipy.ndimage import gaussian_filter1d
+        avg_cam_smooth = gaussian_filter1d(avg_cam_interp, sigma=T // 20)  # ~5% of signal length
+        # Normalize to [0, 1] for colormap
+        avg_cam_norm = (avg_cam_smooth - avg_cam_smooth.min()) / (avg_cam_smooth.max() - avg_cam_smooth.min() + 1e-8)
+        
+        # Plot CAM heatmap as background on signal plot (like CV Grad-CAM)
+        # Use imshow with extent to overlay heatmap
+        y_min, y_max = None, None
+        for c in range(num_classes):
+            mean, _ = class_means[c]
+            if y_min is None:
+                y_min, y_max = mean.min(), mean.max()
+            else:
+                y_min = min(y_min, mean.min())
+                y_max = max(y_max, mean.max())
+        y_range = y_max - y_min
+        y_min -= y_range * 0.1
+        y_max += y_range * 0.1
+        
+        # Draw heatmap as colored background
+        cam_2d = avg_cam_norm.reshape(1, -1)  # [1, T] for imshow
+        ax_signal.imshow(cam_2d, aspect='auto', extent=[0, T, y_min, y_max],
+                        cmap='Reds', alpha=0.3, origin='lower', vmin=0, vmax=1)
+        
+        # Plot signals on top of heatmap
         for c in range(num_classes):
             mean, std = class_means[c]
             ax_signal.plot(t, mean, color=colors[c], linewidth=1.0, label=class_names[c])
             ax_signal.fill_between(t, mean - std, mean + std, color=colors[c], alpha=0.15)
         
+        ax_signal.set_ylim(y_min, y_max)
         ax_signal.set_ylabel(f'Ch{ch}', fontsize=10, fontweight='bold')
         if ch == 0:
-            ax_signal.set_title('Original Signal (Mean ± Std)', fontsize=11)
-            ax_signal.legend(loc='upper right', ncol=num_classes, fontsize=8)
+            ax_signal.set_title('Original Signal + CAM Heatmap (Mean ± Std)', fontsize=11)
+            # Skip legend for many classes to avoid overflow
+            if num_classes <= 10:
+                ax_signal.legend(loc='upper right', ncol=min(5, num_classes), fontsize=7)
+            elif num_classes <= 20:
+                ax_signal.legend(loc='upper right', ncol=5, fontsize=6, handlelength=1)
         
         # Plot per-channel CAM (use CAM index, not time step)
         for c in range(num_classes):
@@ -273,15 +468,13 @@ def plot_class_comparison(
         if ch == 0:
             title = 'Per-Channel CAM' if has_channel_cam else 'Global CAM'
             ax_cam.set_title(title, fontsize=11)
-            ax_cam.legend(loc='upper right', ncol=num_classes, fontsize=8)
+            # Skip legend for many classes
+            if num_classes <= 10:
+                ax_cam.legend(loc='upper right', ncol=min(5, num_classes), fontsize=7)
+            elif num_classes <= 20:
+                ax_cam.legend(loc='upper right', ncol=5, fontsize=6, handlelength=1)
         
-        # Only yellow regions on signal plot (high variance across classes)
-        signal_array = np.array([m[0] for m in class_means])
-        signal_variance = signal_array.var(axis=0)
-        var_threshold = np.percentile(signal_variance, 85)
-        
-        for start, end in _find_high_regions(signal_variance, var_threshold):
-            ax_signal.axvspan(start, end, alpha=0.15, color='yellow')
+        # Yellow regions removed - now using CAM heatmap overlay instead
     
     # Set x-axis labels based on domain
     if frequency_domain:
@@ -299,21 +492,24 @@ def plot_class_comparison(
         title += f' | Accuracy: {accuracy*100:.2f}%'
     fig.suptitle(title, fontsize=14, fontweight='bold')
     
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass  # Ignore tight_layout warnings for complex layouts
     
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved: {save_path}")
     
-    # Print important regions summary
-    print("\n=== Important Regions per Class per Channel ===")
-    for c in range(num_classes):
-        print(f"\n{class_names[c]}:")
-        for ch in range(actual_channels):
-            key = (c, ch)
-            if key in important_regions and important_regions[key]:
-                regions_str = ", ".join([f"[{r[0]}-{r[1]}]" for r in important_regions[key][:3]])
-                print(f"  Ch{ch}: {regions_str}")
+    # Important regions summary - disabled (too verbose for many classes)
+    # print("\n=== Important Regions per Class per Channel ===")
+    # for c in range(num_classes):
+    #     print(f"\n{class_names[c]}:")
+    #     for ch in range(actual_channels):
+    #         key = (c, ch)
+    #         if key in important_regions and important_regions[key]:
+    #             regions_str = ", ".join([f"[{r[0]}-{r[1]}]" for r in important_regions[key][:3]])
+    #             print(f"  Ch{ch}: {regions_str}")
     
     return fig
 
@@ -386,7 +582,10 @@ def plot_multichannel_comparison(
                 ax.set_xlabel('Time', fontsize=8)
     
     fig.suptitle('Multi-Channel Signal Comparison (Mean ± Std per Class)', fontsize=12)
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass
     
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
@@ -469,7 +668,10 @@ def plot_channel_importance(
     ax2.set_xticklabels([f'Ch{i}' for i in range(actual_channels)])
     ax2.legend(loc='upper right')
     
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass
     
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
@@ -523,7 +725,7 @@ def plot_confusion_with_cam(
     class_names: List[str],
     class_cams: Dict[int, np.ndarray],
     save_path: Optional[str] = None,
-    max_classes: int = 20,  # Limit for readability
+    max_classes: int = 60,  # Support up to 60 classes
 ) -> plt.Figure:
     """Plot confusion matrix with representative CAM for each class.
     
@@ -545,9 +747,14 @@ def plot_confusion_with_cam(
     names_display = class_names[:num_classes]
     
     # Adjust figure size for many classes
-    fig_size = (max(10, num_classes * 0.5), max(8, num_classes * 0.4))
+    if num_classes > 40:
+        fig_size = (18, 16)  # Larger for 40+ classes
+    elif num_classes > 20:
+        fig_size = (14, 12)
+    else:
+        fig_size = (max(10, num_classes * 0.5), max(8, num_classes * 0.4))
     fig = plt.figure(figsize=fig_size)
-    gs = GridSpec(2, 2, figure=fig, height_ratios=[1, 0.3])
+    gs = GridSpec(2, 2, figure=fig, height_ratios=[1, 0.25])
     
     # Confusion matrix
     ax_cm = fig.add_subplot(gs[0, :])
@@ -556,8 +763,16 @@ def plot_confusion_with_cam(
     ax_cm.set_xticks(range(num_classes))
     ax_cm.set_yticks(range(num_classes))
     # Smaller font for many classes
-    fontsize = max(6, 10 - num_classes // 5)
-    ax_cm.set_xticklabels(names_display, rotation=45, ha='right', fontsize=fontsize)
+    if num_classes > 40:
+        fontsize = 5
+        rotation = 90
+    elif num_classes > 20:
+        fontsize = 6
+        rotation = 60
+    else:
+        fontsize = max(6, 10 - num_classes // 5)
+        rotation = 45
+    ax_cm.set_xticklabels(names_display, rotation=rotation, ha='right', fontsize=fontsize)
     ax_cm.set_yticklabels(names_display, fontsize=fontsize)
     ax_cm.set_xlabel('Predicted')
     ax_cm.set_ylabel('True')
@@ -565,7 +780,7 @@ def plot_confusion_with_cam(
     ax_cm.set_title(title)
     
     # Add text annotations (skip for many classes)
-    if num_classes <= 15:
+    if num_classes <= 10:
         for i in range(num_classes):
             for j in range(num_classes):
                 ax_cm.text(j, i, f'{cm_display[i, j]:.0f}',
@@ -587,7 +802,10 @@ def plot_confusion_with_cam(
         ax.set_xlabel("Time Step")
         ax.set_ylabel("Weight")
     
-    plt.tight_layout()
+    try:
+        plt.tight_layout()
+    except Exception:
+        pass
     
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches='tight')
@@ -714,16 +932,16 @@ def generate_all_visualizations(
     
     saved_files = {}
     
-    # Figure 1: Grad-CAM Analysis
-    fig1_path = output_dir / f"gradcam_analysis_epoch{epoch:03d}.png"
-    plot_gradcam_analysis(
-        data, labels, combined_results, class_names,
-        purity=purity,
-        save_path=str(fig1_path),
-        title=f"1D Grad-CAM Analysis (Epoch {epoch})"
-    )
-    saved_files['gradcam_analysis'] = str(fig1_path)
-    plt.close()
+    # # Figure 1: Grad-CAM Analysis
+    # fig1_path = output_dir / f"gradcam_analysis_epoch{epoch:03d}.png"
+    # plot_gradcam_analysis(
+    #     data, labels, combined_results, class_names,
+    #     purity=purity,
+    #     save_path=str(fig1_path),
+    #     title=f"1D Grad-CAM Analysis (Epoch {epoch})"
+    # )
+    # saved_files['gradcam_analysis'] = str(fig1_path)
+    # plt.close()
     
     # Compute accuracy for title
     preds = combined_results['pred']
@@ -741,45 +959,61 @@ def generate_all_visualizations(
     saved_files['class_comparison'] = str(fig2_path)
     plt.close()
     
-    # Figure 3: Per-class CAM averages
-    num_classes = len(class_names)
-    class_cams = {}
-    for c in range(num_classes):
-        mask = labels == c
-        if mask.sum() > 0:
-            class_cams[c] = combined_results['cam'][mask].mean(dim=0).numpy()
+    # Figure 3: Single Sample Grad-CAM (CV-style, first 12 classes)
+    sample_indices = select_fixed_samples(labels, num_classes=12, seed=42)
+    if len(sample_indices) > 0:
+        fig3_path = output_dir / f"single_sample_cam_epoch{epoch:03d}.png"
+        plot_single_sample_gradcam(
+            data, labels, combined_results, class_names,
+            sample_indices=sample_indices,
+            num_channels=8,
+            accuracy=accuracy,
+            save_path=str(fig3_path),
+            epoch=epoch,
+        )
+        saved_files['single_sample_cam'] = str(fig3_path)
+        plt.close()
     
-    # Compute confusion matrix
-    conf_matrix = np.zeros((num_classes, num_classes))
-    for true, pred in zip(labels.numpy(), preds.numpy()):
-        conf_matrix[true, pred] += 1
+    # # Figure 4: Per-class CAM averages
+    # num_classes = len(class_names)
+    # class_cams = {}
+    # for c in range(num_classes):
+    #     mask = labels == c
+    #     if mask.sum() > 0:
+    #         class_cams[c] = combined_results['cam'][mask].mean(dim=0).numpy()
     
-    fig3_path = output_dir / f"confusion_cam_epoch{epoch:03d}.png"
-    plot_confusion_with_cam(
-        conf_matrix, class_names, class_cams,
-        save_path=str(fig3_path)
-    )
-    saved_files['confusion_cam'] = str(fig3_path)
-    plt.close()
+    # # Compute confusion matrix
+    # conf_matrix = np.zeros((num_classes, num_classes))
+    # for true, pred in zip(labels.numpy(), preds.numpy()):
+    #     conf_matrix[true, pred] += 1
     
-    # Figure 4: Multi-channel comparison (8 channels × 4 classes)
-    fig4_path = output_dir / f"multichannel_epoch{epoch:03d}.png"
-    plot_multichannel_comparison(
-        data, labels, class_names,
-        num_channels=8,
-        save_path=str(fig4_path)
-    )
-    saved_files['multichannel'] = str(fig4_path)
-    plt.close()
+    # fig3_path = output_dir / f"confusion_cam_epoch{epoch:03d}.png"
+    # plot_confusion_with_cam(
+    #     conf_matrix, class_names, class_cams,
+    #     save_path=str(fig3_path)
+    # )
+    # saved_files['confusion_cam'] = str(fig3_path)
+    # plt.close()
     
-    # Figure 5: Channel importance analysis
-    fig5_path = output_dir / f"channel_importance_epoch{epoch:03d}.png"
-    plot_channel_importance(
-        data, labels, combined_results, class_names,
-        num_channels=8,
-        save_path=str(fig5_path)
-    )
-    saved_files['channel_importance'] = str(fig5_path)
-    plt.close()
+    # Figure 4: Multi-channel comparison - disabled for many classes (slow)
+    # if num_classes <= 10:
+    #     fig4_path = output_dir / f"multichannel_epoch{epoch:03d}.png"
+    #     plot_multichannel_comparison(
+    #         data, labels, class_names,
+    #         num_channels=8,
+    #         save_path=str(fig4_path)
+    #     )
+    #     saved_files['multichannel'] = str(fig4_path)
+    #     plt.close()
+    
+    # Figure 5: Channel importance analysis - disabled (slow)
+    # fig5_path = output_dir / f"channel_importance_epoch{epoch:03d}.png"
+    # plot_channel_importance(
+    #     data, labels, combined_results, class_names,
+    #     num_channels=8,
+    #     save_path=str(fig5_path)
+    # )
+    # saved_files['channel_importance'] = str(fig5_path)
+    # plt.close()
     
     return saved_files

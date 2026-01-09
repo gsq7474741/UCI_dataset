@@ -23,11 +23,15 @@ from enose_uci_dataset.datasets import (
     GAS_LABEL_MAPPINGS,
     get_global_label,
 )
-from enose_uci_dataset.datasets.smellnet import (
+from enose_uci_dataset.datasets.external.smellnet import (
     SMELLNET_PURE_MEAN,
     SMELLNET_PURE_STD,
     SMELLNET_MIXTURE_MEAN,
     SMELLNET_MIXTURE_STD,
+)
+from enose_uci_dataset.datasets.external.g919_55 import (
+    G919_IDX_TO_ODOR,
+    G919_NUM_CLASSES,
 )
 
 
@@ -121,6 +125,13 @@ def _extract_smellnet_label(target: Dict) -> Tuple[int, str]:
     return label, ingredient
 
 
+def _extract_g919_label(target: Dict) -> Tuple[int, str]:
+    """G919: 55 odor classification"""
+    odor_idx = target.get("odor_idx", 0)
+    odor_name = target.get("odor_name", G919_IDX_TO_ODOR.get(odor_idx, f"Odor_{odor_idx}"))
+    return odor_idx, odor_name
+
+
 LABEL_EXTRACTORS = {
     "twin_gas_sensor_arrays": _extract_twin_gas_label,
     "gas_sensor_array_exposed_to_turbulent_gas_mixtures": _extract_turbulent_label,
@@ -132,6 +143,7 @@ LABEL_EXTRACTORS = {
     "gas_sensor_array_temperature_modulation": _extract_temp_mod_label,
     "gas_sensors_for_home_activity_monitoring": _extract_home_label,
     "smellnet": _extract_smellnet_label,
+    "g919_55": _extract_g919_label,
 }
 
 
@@ -312,10 +324,11 @@ class SingleDatasetClassification(Dataset):
         """
         np.random.seed(seed)
         
-        # Check if dataset has original split info
+        # Check if dataset has original split info ('split' or 'is_train')
         has_split_info = (hasattr(self.dataset, '_samples') and 
                           len(self.dataset._samples) > 0 and
-                          'split' in self.dataset._samples[0].meta)
+                          ('split' in self.dataset._samples[0].meta or 
+                           'is_train' in self.dataset._samples[0].meta))
         
         if has_split_info:
             # Respect original train/test splits
@@ -324,8 +337,14 @@ class SingleDatasetClassification(Dataset):
             
             for idx in range(len(self.dataset)):
                 record = self.dataset._samples[idx]
-                orig_split = record.meta.get('split', 'train')
-                if orig_split == 'train':
+                # Check both 'split' and 'is_train' meta fields
+                if 'is_train' in record.meta:
+                    is_train = record.meta.get('is_train', True)
+                else:
+                    orig_split = record.meta.get('split', 'train')
+                    is_train = (orig_split == 'train')
+                
+                if is_train:
                     orig_train_indices.append(idx)
                 else:  # test, test_seen, test_unseen
                     orig_test_indices.append(idx)
@@ -470,6 +489,18 @@ class SingleDatasetClassification(Dataset):
         elif C < self.num_channels:
             pad_width = ((0, 0), (0, self.num_channels - C))
             data = np.pad(data, pad_width, mode='constant', constant_values=0)
+        
+        # Truncate/pad to max_length if specified
+        if self.max_length > 0:
+            if T > self.max_length:
+                # Truncate to max_length
+                data = data[:self.max_length, :]
+                T = self.max_length
+            elif T < self.max_length:
+                # Pad with zeros to max_length
+                pad_width = ((0, self.max_length - T), (0, 0))
+                data = np.pad(data, pad_width, mode='constant', constant_values=0)
+                T = self.max_length
         
         # Handle NaN/inf
         data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
@@ -685,6 +716,11 @@ CLASSIFICATION_DATASETS = {
         "num_classes": 50,  # 50 for pure, 43 for mixture
         "task": "ingredient_classification",
         "description": "SmellNet: 50 pure (1Hz) or 43 mixture (10Hz) classes",
+    },
+    "g919_55": {
+        "num_classes": 55,
+        "task": "odor_classification",
+        "description": "SJTU-G919: 55 odors across 8 categories (perfume, condiment, fruit, milk, spice, vegetable, wine, drink)",
     },
 }
 

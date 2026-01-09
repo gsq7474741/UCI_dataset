@@ -9,7 +9,7 @@ import lightning as L
 from torch.utils.data import DataLoader
 
 from .dataset import SingleDatasetClassification, collate_fn, collate_fn_dual_view
-from enose_uci_dataset.datasets.smellnet import (
+from enose_uci_dataset.datasets.external.smellnet import (
     SMELLNET_PURE_MEAN,
     SMELLNET_PURE_STD,
     SMELLNET_MIXTURE_MEAN,

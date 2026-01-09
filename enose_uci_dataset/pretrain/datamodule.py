@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 import lightning as L
 
 from ..datasets import CombinedEnoseDataset, list_datasets
-from ..datasets._info import get_dataset_info
+from ..datasets.schema._info import get_dataset_info
 from .model import SensorEmbedding
 
 
